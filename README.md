@@ -112,4 +112,65 @@ window.Echo.connector.ably.connection.on(stateChange => {
 npm run dev
 ```
 
+## Broadcasting messages from server-side
+
+Laravel supports [defining events](https://laravel.com/docs/events#defining-events) on server-side, and firing them at any time, to be received by the event listeners. Below is guide on how to send a public message notification that can be received via Laravel Echo on frontend.
+
+1. Create `app/Events/PublicMessageNotification.php` with the following content:
+```php
+<?php
+
+namespace App\Events;
+
+use Illuminate\Broadcasting\Channel;
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Queue\SerializesModels;
+
+class PublicMessageNotification implements ShouldBroadcast
+{
+    public $channel;
+    public $message;
+
+    use Dispatchable, InteractsWithSockets, SerializesModels;
+
+    /**
+     * Create a new event instance.
+     *
+     * @return void
+     */
+    public function __construct($channel, $message)
+    {
+        $this->channel = $channel;
+        $this->message = $message;
+    }
+
+    /**
+     * Get the channels the event should broadcast on.
+     *
+     * @return \Illuminate\Broadcasting\Channel|array
+     */
+    public function broadcastOn()
+    {
+        return new Channel($this->channel);
+    }
+}
+```
+
+2. Fire the event from anywhere within your application:
+```php
+event(new PublicMessageNotification($channel, $message));
+```
+The above event will be sent to all participants of the specified channel.
+
+3. Receive the `PublicMessageNotification` event on frontend:
+```js
+Echo.channel(channel)
+    .listen('PublicMessageNotification', (data) => {
+        console.log(data);
+        // Sample data: {"channel": "channelName", "message": "messageContent", "socket": null}
+    })
+```
+
 # Contributing
