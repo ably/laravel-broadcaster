@@ -17,13 +17,13 @@ jobs:
         php-version: [7.2, 7.3, 7.4, 8.0, 8.1]
         laravel-version: [6.*, 7.*, 8.*, 9.*]
         include:
-          - laravel: 6.*
+          - laravel-version: 6.*
             testbench: 4.*
-          - laravel: 7.*
+          - laravel-version: 7.*
             testbench: 5.*
-          - laravel: 8.*
+          - laravel-version: 8.*
             testbench: 6.*
-          - laravel: 9.*
+          - laravel-version: 9.*
             testbench: 7.*
 
     name: P${{ matrix.php-version }} - L${{ matrix.laravel-version }}
