@@ -1,4 +1,4 @@
- name: PHP Linting (Pint)
+name: PHP Linting (Pint)
 
 on:
   pull_request:
