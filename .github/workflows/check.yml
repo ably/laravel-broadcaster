@@ -27,9 +27,9 @@ jobs:
             testbench: 7.*
         exclude:
           - laravel-version: 8.*
-            php: 7.2
+            php-version: 7.2
           - laravel-version: 9.*
-            php: [7.2, 7.3, 7.4]
+            php-version: [7.2, 7.3, 7.4]
 
     name: P${{ matrix.php-version }} - L${{ matrix.laravel-version }}
 
