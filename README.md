@@ -160,7 +160,7 @@ class PublicMessageNotification implements ShouldBroadcast
 
 2. Fire the event from anywhere within your application:
 ```php
-event(new PublicMessageNotification($channel, $message));
+PublicMessageNotification::dispatch($channel, $message);
 ```
 The above event will be sent to all participants of the specified channel.
 
