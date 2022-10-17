@@ -1,5 +1,6 @@
 # Loosely based upon:
 #   https://github.com/actions/starter-workflows/blob/main/ci/php.yml
+name: Check
 
 on:
   pull_request:
