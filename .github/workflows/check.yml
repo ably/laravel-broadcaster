@@ -16,6 +16,15 @@ jobs:
       matrix:
         php-version: [7.2, 7.3, 7.4, 8.0, 8.1]
         laravel-version: [6.*, 7.*, 8.*, 9.*]
+        include:
+          - laravel: 6.*
+            testbench: 4.*
+          - laravel: 7.*
+            testbench: 5.*
+          - laravel: 8.*
+            testbench: 6.*
+          - laravel: 9.*
+            testbench: 7.*
 
     name: P${{ matrix.php-version }} - L${{ matrix.laravel-version }}
 
@@ -33,7 +42,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          composer require "laravel/framework:${{ matrix.laravel-version }}" --no-interaction --no-update
+          composer require "laravel/framework:${{ matrix.laravel-version }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
           composer install --prefer-dist --no-progress --no-suggest
 
       # the test script is configured in composer.json.
