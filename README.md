@@ -114,7 +114,7 @@ npm run dev
 
 ## Broadcasting messages from server-side
 
-Laravel supports [defining events](https://laravel.com/docs/events#defining-events) on server-side, and firing them at any time, to be received by the event listeners. Below is guide on how to send a public message notification that can be received via Laravel Echo on frontend.
+Laravel supports [defining events](https://laravel.com/docs/events#defining-events) on server-side, and [broadcasting](https://laravel.com/docs/broadcasting#broadcasting-events) them at any time, to be [received](https://laravel.com/docs/broadcasting#receiving-broadcasts) by the event listeners. Below is guide on how to send a public message notification that can be received via Laravel Echo on frontend.
 
 1. Create `app/Events/PublicMessageNotification.php` with the following content:
 ```php
