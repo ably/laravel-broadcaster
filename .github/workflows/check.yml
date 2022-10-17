@@ -42,8 +42,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          composer require "laravel/framework:${{ matrix.laravel-version }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
-          composer install --prefer-dist --no-progress --no-suggest
+          composer require "laravel/framework:${{ matrix.laravel-version }}" --no-interaction --no-update
+          composer require --dev "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          composer install --prefer-dist --no-progress
 
       # the test script is configured in composer.json.
       # see: https://getcomposer.org/doc/articles/scripts.md
