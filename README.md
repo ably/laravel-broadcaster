@@ -67,6 +67,7 @@ You can define channel capabilities for private and presence channels in `routes
 **Private chanel**
 
 For private channels, access is allowed for truthy values and denied for falsy values.
+If the response is truthy, it should be in the format of an [Ably capability object](https://ably.com/docs/core-features/authentication#capability-operations).
 ```php
 Broadcast::channel('channel1', function ($user) {
     return ['capability' => ["subscribe", "history"]];
