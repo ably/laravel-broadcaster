@@ -2,12 +2,11 @@
 
 This is a service provider package that allows using the Ably Broadcaster in Laravel.
 
-
-# Requirements
+## Requirements
 1. PHP version >= 7.2.0
 2. Laravel version >= 6.0.0
 
-# Installation
+## Installation
 
 The service provider is available as a composer package on packagist. If you don't have composer already installed, you can get it from https://getcomposer.org/.
 
@@ -16,7 +15,7 @@ Install Ably Broadcaster from the shell with:
 composer require ably/laravel-broadcaster
 ```
 
-# Setup
+## Setup
 
 1. In your `.env` file, set `BROADCAST_DRIVER` and `ABLY_KEY`.
 ```dotenv
@@ -59,9 +58,9 @@ ABLY_TOKEN_EXPIRY=3600
             'token_expiry' => env('ABLY_TOKEN_EXPIRY', 3600)
 ```
 
-# Example code
+## Example code
 
-## Registering channels
+### Registering channels
 
 You can define channel capabilities for private and presence channels in `routes/channels.php`.
 
@@ -83,7 +82,7 @@ Broadcast::channel('channel2', function ($user) {
 });
 ```
 
-## Using Laravel Echo on client-side
+### Using Laravel Echo on client-side
 
 Laravel Echo is a JavaScript library that makes it painless to subscribe to channels and listen for events broadcast by your server-side broadcasting driver.
 
@@ -112,7 +111,7 @@ window.Echo.connector.ably.connection.on(stateChange => {
 npm run dev
 ```
 
-## Broadcasting messages from server-side
+### Broadcasting messages from server-side
 
 Laravel supports [defining events](https://laravel.com/docs/events#defining-events) on server-side, and [broadcasting](https://laravel.com/docs/broadcasting#broadcasting-events) them at any time, to be [received](https://laravel.com/docs/broadcasting#receiving-broadcasts) by the event listeners. Below is guide on how to send a public message notification that can be received via Laravel Echo on frontend.
 
@@ -173,7 +172,7 @@ Echo.channel(channel)
     })
 ```
 
-# Contributing
+## Contributing
 
 1. Fork it
 2. Create your feature branch (`git checkout -b my-new-feature`)
@@ -182,7 +181,7 @@ Echo.channel(channel)
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create a new Pull Request
 
-# Release Process
+## Release Process
 
 This library uses [semantic versioning](http://semver.org/). For each release, the following needs to be done:
 
