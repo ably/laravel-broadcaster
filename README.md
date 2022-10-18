@@ -75,7 +75,7 @@ Broadcast::channel('channel1', function ($user) {
 
 **Presence channel**
 
-For presence channels, we can also return data about the user. ([read more](https://laravel.com/docs/9.x/broadcasting#authorizing-presence-channels))
+For presence channels, you can also return data about the user. ([read more](https://laravel.com/docs/9.x/broadcasting#authorizing-presence-channels))
 ```php
 Broadcast::channel('channel2', function ($user) {
     return ['id' => $user->id, 'name' => $user->name, 'capability' => ["subscribe", "presence"]];
