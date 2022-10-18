@@ -89,7 +89,7 @@ Laravel Echo is a JavaScript library that makes it painless to subscribe to chan
 
 1. Install Laravel Echo and Ably:
 ```
-npm install --save-dev laravel-echo ably
+npm install --save-dev @ably/laravel-echo ably
 ```
 2. Add to `resources/js/bootstrap.js`:
 ```js
