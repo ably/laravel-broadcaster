@@ -85,7 +85,7 @@ Broadcast::channel('channel2', function ($user) {
 
 ### Using Laravel Echo on client-side
 
-Laravel Echo is a JavaScript library that makes it painless to subscribe to channels and listen for events broadcast by your server-side broadcasting driver.
+Laravel Echo is a JavaScript library that makes it painless to subscribe to channels and listen for events broadcast by your server-side broadcasting driver. Ably is maintaining a fork of the official laravel-echo module which allows you to use the official [ably-js SDK](https://github.com/ably/ably-js).
 
 1. Install Laravel Echo and Ably:
 ```
