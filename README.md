@@ -181,3 +181,13 @@ Echo.channel(channel)
 4. Ensure you have added suitable tests and the test suite is passing (run `vendor/bin/phpunit`)
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create a new Pull Request
+
+# Release Process
+
+This library uses [semantic versioning](http://semver.org/). For each release, the following needs to be done:
+
+* Run [`github_changelog_generator`](https://github.com/skywinder/Github-Changelog-Generator) to automate the update of the [CHANGELOG](./CHANGELOG.md). Once the `CHANGELOG` update has completed, manually change the `Unreleased` heading and link with the current version number such as `1.0.0`. Also ensure that the `Full Changelog` link points to the new version tag instead of the `HEAD`.
+* Commit
+* Add a tag and push to origin such as `git tag 1.0.0 && git push origin 1.0.0`
+* Visit https://github.com/ably/laravel-broadcaster/tags and add release notes for the release including links to the changelog entry.
+* Visit https://packagist.org/packages/ably/laravel-broadcaster, log in to Packagist, and click the "Update" button.
