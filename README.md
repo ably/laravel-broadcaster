@@ -6,7 +6,7 @@
 
 _[Ably](https://ably.com) is the platform that powers synchronized digital experiences in realtime. Whether attending an event in a virtual venue, receiving realtime financial information, or monitoring live car performance data – consumers simply expect realtime digital experiences as standard. Ably provides a suite of APIs to build, extend, and deliver powerful digital experiences in realtime for more than 250 million devices across 80 countries each month. Organizations like Bloomberg, HubSpot, Verizon, and Hopin depend on Ably’s platform to offload the growing complexity of business-critical realtime data synchronization at global scale. For more information, see the [Ably documentation](https://ably.com/docs)._
 
-This adds support for the official [Ably](https://ably.io) broadcaster to the [Laravel](https://laravel.com/) using the native [ably-php](https://github.com/ably/ably-php). This library supports native [ably-js](https://github.com/ably/ably-js) based [ably-laravel-echo](https://github.com/ably-forks/echo) framework at client side. Main aim is to replace old [pusher-client based AblyBroadcaster](https://laravel.com/docs/9.x/broadcasting#client-ably).
+This library implements ably broadcaster as a independent service provider library for [Laravel](https://laravel.com/) using [ably-php](https://github.com/ably/ably-php). This library supports native [ably-js](https://github.com/ably/ably-js) based [ably-laravel-echo](https://github.com/ably-forks/echo) framework at client side. Main aim is to replace old [pusher-client based AblyBroadcaster](https://laravel.com/docs/9.x/broadcasting#client-ably).
 
 ## Requirements
 1. PHP version >= 7.2.0
