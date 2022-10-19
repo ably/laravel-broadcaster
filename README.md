@@ -14,7 +14,10 @@ This implements ably broadcaster as a independent service provider library for [
 - Disable public channels.
 - Update channel permissions for a user.
 - Update token expirty.
+
+## Bug Fixes
 - Fixes [broadcasting events to others](https://faqs.ably.com/why-isnt-the-broadcast-only-to-others-functionality-working-in-laravel-with-the-ably-broadcaster).
+- Fixes intermittent presence leave issue for channel members.
 
 ## Requirements
 1. PHP version >= 7.2.0
@@ -198,8 +201,11 @@ Echo.channel(channel)
 
 This library uses [semantic versioning](http://semver.org/). For each release, the following needs to be done:
 
-* Run [`github_changelog_generator`](https://github.com/skywinder/Github-Changelog-Generator) to automate the update of the [CHANGELOG](./CHANGELOG.md). Once the `CHANGELOG` update has completed, manually change the `Unreleased` heading and link with the current version number such as `1.0.0`. Also ensure that the `Full Changelog` link points to the new version tag instead of the `HEAD`.
-* Commit
-* Add a tag and push to origin such as `git tag 1.0.0 && git push origin 1.0.0`
-* Visit https://github.com/ably/laravel-broadcaster/tags and add release notes for the release including links to the changelog entry.
-* Visit https://packagist.org/packages/ably/laravel-broadcaster, log in to Packagist, and click the "Update" button.
+1. Create a new branch for the release, named like `release/1.2.4` (where `1.2.4` is what you're releasing, being the new version)
+2. Run [`github_changelog_generator`](https://github.com/skywinder/Github-Changelog-Generator) to automate the update of the [CHANGELOG](./CHANGELOG.md). Once the `CHANGELOG` update has completed, manually change the `Unreleased` heading and link with the current version number such as `1.2.4`. Also ensure that the `Full Changelog` link points to the new version tag instead of the `HEAD`.
+3. Commit generated [CHANGELOG.md](./CHANGELOG.md) file.
+4. Make a PR against `main`.
+5. Once the PR is approved, merge it into `main`.
+6. Add a tag and push it to origin - e.g.: `git tag v1.2.4 && git push origin v1.2.4`.
+7. Visit https://github.com/ably/laravel-broadcaster/tags and add release notes for the release including links to the changelog entry.
+8. Visit https://packagist.org/packages/ably/laravel-broadcaster, log in to Packagist, and click the "Update" button.
