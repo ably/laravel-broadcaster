@@ -1,6 +1,12 @@
 # Ably Broadcaster for Laravel
 
-This is a service provider package that allows using the Ably Broadcaster in Laravel.
+[![Latest Stable Version](https://poser.pugx.org/ably/laravel-broadcaster/v/stable)](https://packagist.org/packages/ably/laravel-broadcaster)
+[![Total Downloads](https://poser.pugx.org/ably/laravel-broadcaster/downloads)](https://packagist.org/packages/ably/laravel-broadcaster)
+[![License](https://poser.pugx.org/ably/laravel-broadcaster/license)](https://packagist.org/packages/ably/laravel-broadcaster)
+
+_[Ably](https://ably.com) is the platform that powers synchronized digital experiences in realtime. Whether attending an event in a virtual venue, receiving realtime financial information, or monitoring live car performance data – consumers simply expect realtime digital experiences as standard. Ably provides a suite of APIs to build, extend, and deliver powerful digital experiences in realtime for more than 250 million devices across 80 countries each month. Organizations like Bloomberg, HubSpot, Verizon, and Hopin depend on Ably’s platform to offload the growing complexity of business-critical realtime data synchronization at global scale. For more information, see the [Ably documentation](https://ably.com/docs)._
+
+This adds support for the official [Ably](https://ably.io) broadcaster to the [Laravel](https://laravel.com/) using the native [ably-php](https://github.com/ably/ably-php). This library supports native [ably-js](https://github.com/ably/ably-js) based [ably-laravel-echo](https://github.com/ably-forks/echo) framework at client side. Main aim is to replace old [pusher-client based AblyBroadcaster](https://laravel.com/docs/9.x/broadcasting#client-ably).
 
 ## Requirements
 1. PHP version >= 7.2.0
@@ -8,9 +14,8 @@ This is a service provider package that allows using the Ably Broadcaster in Lar
 
 ## Installation
 
-The service provider is available as a composer package on packagist. If you don't have composer already installed, you can get it from https://getcomposer.org/.
+You can install the package via composer
 
-Install Ably Broadcaster from the shell with:
 ```
 composer require ably/laravel-broadcaster
 ```
@@ -20,7 +25,6 @@ composer require ably/laravel-broadcaster
 1. In your `.env` file, set `BROADCAST_DRIVER` and `ABLY_KEY`.
 ```dotenv
 BROADCAST_DRIVER=ably
-
 ABLY_KEY=ROOT_API_KEY_COPIED_FROM_ABLY_WEB_DASHBOARD
 ```
 
@@ -67,7 +71,7 @@ You can define channel capabilities for private and presence channels in `routes
 **Private chanel**
 
 For private channels, access is allowed for truthy values and denied for falsy values.
-If the response is truthy, it should be in the format of an [Ably capability object](https://ably.com/docs/core-features/authentication#capability-operations).
+If the response is truthy, it should be in the format of an [Ably capability object](https://ably.com/docs/core-features/authentication#capabi  lity-operations).
 ```php
 Broadcast::channel('channel1', function ($user) {
     return ['capability' => ["subscribe", "history"]];
