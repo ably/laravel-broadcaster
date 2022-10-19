@@ -6,7 +6,7 @@
 
 _[Ably](https://ably.com) is the platform that powers synchronized digital experiences in realtime. Whether attending an event in a virtual venue, receiving realtime financial information, or monitoring live car performance data – consumers simply expect realtime digital experiences as standard. Ably provides a suite of APIs to build, extend, and deliver powerful digital experiences in realtime for more than 250 million devices across 80 countries each month. Organizations like Bloomberg, HubSpot, Verizon, and Hopin depend on Ably’s platform to offload the growing complexity of business-critical realtime data synchronization at global scale. For more information, see the [Ably documentation](https://ably.com/docs)._
 
-This implements ably broadcaster as a independent service provider library for [Laravel](https://laravel.com/) using [ably-php](https://github.com/ably/ably-php). This library works with [ably-js](https://github.com/ably/ably-js) based [ably-laravel-echo](https://github.com/ably-forks/echo) framework with enhanced features at client side. Main aim is to replace old [pusher-client based AblyBroadcaster](https://laravel.com/docs/9.x/broadcasting#client-ably).
+This implements ably broadcaster as a independent service provider library for [Laravel](https://laravel.com/) using [ably-php](https://github.com/ably/ably-php). This library works with [ably-js](https://github.com/ably/ably-js) based [ably-laravel-echo](https://github.com/ably-forks/echo) framework having enhanced features at client side. Main aim is to replace old [pusher-client based ably broadcaster](https://laravel.com/docs/9.x/broadcasting#client-ably).
 
 ## Features
 - Native ably-js support.
@@ -187,6 +187,12 @@ Echo.channel(channel)
         // Sample data: {"channel": "channelName", "message": "messageContent", "socket": null}
     })
 ```
+## Testing
+``` bash
+composer test
+```
+## Changelog
+Please see [CHANGELOG](CHANGELOG.md) for more information what has changed recently.
 
 ## Contributing
 
