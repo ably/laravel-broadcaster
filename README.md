@@ -33,19 +33,15 @@ composer require ably/laravel-broadcaster
 
 ## Setup
 
-1. In your `.env` file, set `BROADCAST_DRIVER` and `ABLY_KEY`.
+1. Update `.env` file, set `BROADCAST_DRIVER` as `ably` and specify `ABLY_KEY`.
 ```dotenv
 BROADCAST_DRIVER=ably
 ABLY_KEY=ROOT_API_KEY_COPIED_FROM_ABLY_WEB_DASHBOARD
+ABLY_DISABLE_PUBLIC_CHANNELS=false // optional, default : false
+ABLY_TOKEN_EXPIRY=3600 // optional, default : 3600 seconds
 ```
 
-2. The following `.env` variables are optional, but can be added to further modify the behavior of Ably Broadcaster.
-```dotenv
-ABLY_DISABLE_PUBLIC_CHANNELS=false
-ABLY_TOKEN_EXPIRY=3600
-```
-
-3. Uncomment `BroadcastServiceProvider` in `config/app.php`, as follows:
+2. Uncomment `BroadcastServiceProvider` in `config/app.php`
 <pre>
         /*
          * Application Service Providers...
@@ -57,7 +53,7 @@ ABLY_TOKEN_EXPIRY=3600
         App\Providers\RouteServiceProvider::class,
 </pre>
 
-4. If running Laravel 8 or older, add the following lines in `config/broadcaster.php` to the `connections` array
+4. If running Laravel 8 or older, edit `config/broadcasting.php`, set following env. variables in the `connections` array
 ```php
         'ably' => [
             'driver' => 'ably',
@@ -67,15 +63,13 @@ ABLY_TOKEN_EXPIRY=3600
         ],
 ```
 
-5. For Laravel 9, you can optionally add the following lines in `config/broadcaster.php` to the `ably` array:
+5. For Laravel 9, edit `config/broadcasting.php`, set following env. variables in the `connections->ably` array
 ```php
             'disable_public_channels' => env('ABLY_DISABLE_PUBLIC_CHANNELS', false),
             'token_expiry' => env('ABLY_TOKEN_EXPIRY', 3600)
 ```
 
-## Example code
-
-### Registering channels
+### Authorizing channels
 
 You can define channel capabilities for private and presence channels in `routes/channels.php`.
 
@@ -184,18 +178,18 @@ The above event will be sent to all participants of the specified channel.
 Echo.channel(channel)
     .listen('PublicMessageNotification', (data) => {
         console.log(data);
-        // Sample data: {"channel": "channelName", "message": "messageContent", "socket": null}
-    })
+    });
 ```
+
 ## Testing
 ``` bash
 composer test
 ```
+
 ## Changelog
 Please see [CHANGELOG](CHANGELOG.md) for more information what has changed recently.
 
 ## Contributing
-
 1. Fork it
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
@@ -204,7 +198,6 @@ Please see [CHANGELOG](CHANGELOG.md) for more information what has changed recen
 5. Create a new Pull Request
 
 ## Release Process
-
 This library uses [semantic versioning](http://semver.org/). For each release, the following needs to be done:
 
 1. Create a new branch for the release, named like `release/1.2.4` (where `1.2.4` is what you're releasing, being the new version)
