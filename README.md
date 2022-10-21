@@ -69,38 +69,17 @@ ABLY_TOKEN_EXPIRY=3600 // optional, default : 3600 seconds
             'token_expiry' => env('ABLY_TOKEN_EXPIRY', 3600)
 ```
 
-### Authorizing channels
+Finally, you are ready to install and configure [Ably Laravel Echo](https://github.com/ably-forks/echo/), which will receive the broadcast events on the client-side.
 
-You can define channel capabilities for private and presence channels in `routes/channels.php`.
+## Using Laravel Echo on client-side
 
-**Private chanel**
-
-For private channels, access is allowed for truthy values and denied for falsy values.
-If the response is truthy, it should be in the format of an [Ably capability object](https://ably.com/docs/core-features/authentication#capabi  lity-operations).
-```php
-Broadcast::channel('channel1', function ($user) {
-    return ['capability' => ["subscribe", "history"]];
-});
-```
-
-**Presence channel**
-
-For presence channels, you can also return data about the user. ([read more](https://laravel.com/docs/9.x/broadcasting#authorizing-presence-channels))
-```php
-Broadcast::channel('channel2', function ($user) {
-    return ['id' => $user->id, 'name' => $user->name, 'capability' => ["subscribe", "presence"]];
-});
-```
-
-### Using Laravel Echo on client-side
-
-Laravel Echo is a JavaScript library that makes it painless to subscribe to channels and listen for events broadcast by your server-side broadcasting driver. Ably is maintaining a fork of the official laravel-echo module which allows you to use the official [ably-js SDK](https://github.com/ably/ably-js).
-
-1. Install Laravel Echo and Ably:
+[Ably Laravel Echo](https://github.com/ably-forks/echo/) is a JavaScript library that makes it painless to subscribe to channels and listen for events broadcast by your server-side broadcasting driver. Ably is maintaining a fork of the official laravel-echo module which allows you to use the official [ably-js SDK](https://github.com/ably/ably-js). In this example, we will also install the official ably package:
 ```
 npm install --save-dev @ably/laravel-echo ably
 ```
-2. Add to `resources/js/bootstrap.js`:
+
+Once Echo is installed, you are ready to create a fresh Echo instance in your applications JavaScript. A great place to do this is at the bottom of the `resources/js/bootstrap.js` file that is included with the Laravel framework. By default, an example Echo configuration is already included in this file; however, the default configuration in the `bootstrap.js` file is intended for Pusher. You may copy the configuration below to transition your configuration to Ably.
+
 ```js
 import Echo from 'laravel-echo';
 import * as Ably from 'ably';
@@ -116,70 +95,50 @@ window.Echo.connector.ably.connection.on(stateChange => {
     }
 });
 ```
-3. Recompile Laravel assets:
+You can set custom [clientOptions](https://ably.com/docs/api/realtime-sdk?lang=javascript#client-options) when creating an `Echo` instance.
+
 ```
+    broadcaster: 'ably',
+    authEndpoint: 'http://www.localhost:8000/broadcasting/auth'
+      // Additional ably specific options - https://ably.com/docs/api/realtime-sdk?lang=javascript#client-options  
+    realtimeHost: 'realtime.ably.com',
+    restHost: 'rest.ably.com',
+    port: '80',
+    echoMessages: true // By default self-echo for published message is false
+```
+Once you have uncommented and adjusted the Echo configuration according to your needs, you may compile your application's assets:
+
+```shell
 npm run dev
 ```
 
-### Broadcasting messages from server-side
+### Supported features
 
-Laravel supports [defining events](https://laravel.com/docs/events#defining-events) on server-side, and [broadcasting](https://laravel.com/docs/broadcasting#broadcasting-events) them at any time, to be [received](https://laravel.com/docs/broadcasting#receiving-broadcasts) by the event listeners. Below is guide on how to send a public message notification that can be received via Laravel Echo on frontend.
+**1. Update token expiry. Default: 3600 seconds (1 hr)**
+- Update `ABLY_TOKEN_EXPIRY` in `.env` file. 
+- Update `ably` section under `config/broadcasting.php` with `'token_expiry' => env('ABLY_TOKEN_EXPIRY', 3600)`
 
-1. Create `app/Events/PublicMessageNotification.php` with the following content:
+**2. Modify channel capability**
+- Channel access can be changed as per [Channel Capabilities](https://ably.com/docs/core-features/authentication#capability-operations)
 ```php
-<?php
+  // file - routes/channels.php
 
-namespace App\Events;
-
-use Illuminate\Broadcasting\Channel;
-use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
-use Illuminate\Foundation\Events\Dispatchable;
-use Illuminate\Queue\SerializesModels;
-
-class PublicMessageNotification implements ShouldBroadcast
-{
-    public $channel;
-    public $message;
-
-    use Dispatchable, InteractsWithSockets, SerializesModels;
-
-    /**
-     * Create a new event instance.
-     *
-     * @return void
-     */
-    public function __construct($channel, $message)
-    {
-        $this->channel = $channel;
-        $this->message = $message;
-    }
-
-    /**
-     * Get the channels the event should broadcast on.
-     *
-     * @return \Illuminate\Broadcasting\Channel|array
-     */
-    public function broadcastOn()
-    {
-        return new Channel($this->channel);
-    }
-}
+  // for private channel (Access is allowed for truthy values and denied for falsy values)
+  Broadcast::channel('channel1', function ($user) {
+      return ['capability' => ["subscribe", "history"]];
+  });
+  
+  // for presence channel
+  Broadcast::channel('channel2', function ($user) {
+      return ['id' => $user->id, 'name' => $user->name, 'capability' => ["subscribe", "presence"]];
+  });
 ```
 
-2. Fire the event from anywhere within your application:
-```php
-PublicMessageNotification::dispatch($channel, $message);
-```
-The above event will be sent to all participants of the specified channel.
+**3. Disable public channels**
+- Update `ABLY_DISABLE_PUBLIC_CHANNELS`, set as **true** in `.env` file. 
+- Update `ably` section under `config/broadcasting.php` with `'disable_public_channels' => env('ABLY_DISABLE_PUBLIC_CHANNELS', false)`
 
-3. Receive the `PublicMessageNotification` event on frontend:
-```js
-Echo.channel(channel)
-    .listen('PublicMessageNotification', (data) => {
-        console.log(data);
-    });
-```
+**Configuration related documentation is covered as a part of README. Please take a look at [Laravel Broadcasting Doc](https://laravel.com/docs/broadcasting) for more information on broadcasting and receiving events.**
 
 ## Testing
 ``` bash
