@@ -112,7 +112,7 @@ Once you have uncommented and adjusted the Echo configuration according to your 
 npm run dev
 ```
 
-### Supported features
+## Configure advanced features
 
 **1. Update token expiry. Default: 3600 seconds (1 hr)**
 - Update `ABLY_TOKEN_EXPIRY` in `.env` file. 
@@ -138,7 +138,17 @@ npm run dev
 - Update `ABLY_DISABLE_PUBLIC_CHANNELS`, set as **true** in `.env` file. 
 - Update `ably` section under `config/broadcasting.php` with `'disable_public_channels' => env('ABLY_DISABLE_PUBLIC_CHANNELS', false)`
 
-**Configuration related documentation is covered as a part of README. Please take a look at [Laravel Broadcasting Doc](https://laravel.com/docs/broadcasting) for more information on broadcasting and receiving events.**
+## Addtional Documentation
+- Current README covers basic ably broadcaster+echo configuration for setting up laravel app and getting it running.
+- Please take a look at [Laravel Broadcasting Doc](https://laravel.com/docs/broadcasting) for more information on broadcasting and receiving events.
+
+## Example 
+- We have created a demo web-chat app using Ably Broadcaster+Echo based on laravel.
+- Visit https://github.com/ably-labs/laravel-broadcast-app for detailed information.
+
+<img src="https://github.com/ably-labs/laravel-broadcast-app/raw/main/docs/images/private_room.png" alt="Public room example">
+
+</br>
 
 ## Testing
 ``` bash
