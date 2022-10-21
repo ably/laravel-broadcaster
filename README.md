@@ -138,6 +138,22 @@ npm run dev
 - Update `ABLY_DISABLE_PUBLIC_CHANNELS`, set as **true** in `.env` file. 
 - Update `ably` section under `config/broadcasting.php` with `'disable_public_channels' => env('ABLY_DISABLE_PUBLIC_CHANNELS', false)`
 
+<a name="migrate-pusher-to-ably"></a>
+## Migrating from old AblyBroadcaster
+- The current Ably broadcaster is fully compatible with the old Pusher based AblyBroadcaster.
+-  The only difference is for **Leaving the channel**, you should use [Ably Channel Namespaces](https://ably.com/docs/general/channel-rules-namespaces) conventions
+```js
+Echo.channel('channel1').leaveChannel("public:channel1")
+Echo.private('channel2').leaveChannel("private:channel2")
+Echo.join('channel3').leaveChannel("presence:channel3")
+```
+instead of [Pusher Channel Conventions](https://pusher.com/docs/channels/using_channels/channels/#channel-types)
+```js
+Echo.channel('channel1').leaveChannel("channel1")
+Echo.private('channel2').leaveChannel("private-channel2")
+Echo.join('channel3').leaveChannel("presence-channel3")
+```
+
 ## Addtional Documentation
 - Current README covers basic ably broadcaster+echo configuration for setting up laravel app and getting it running.
 - Please take a look at [Laravel Broadcasting Doc](https://laravel.com/docs/broadcasting) for more information on broadcasting and receiving events.
