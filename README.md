@@ -186,10 +186,11 @@ Please see [CHANGELOG](CHANGELOG.md) for more information what has changed recen
 This library uses [semantic versioning](http://semver.org/). For each release, the following needs to be done:
 
 1. Create a new branch for the release, named like `release/1.2.4` (where `1.2.4` is what you're releasing, being the new version)
-2. Run [`github_changelog_generator`](https://github.com/skywinder/Github-Changelog-Generator) to automate the update of the [CHANGELOG](./CHANGELOG.md). Once the `CHANGELOG` update has completed, manually change the `Unreleased` heading and link with the current version number such as `1.2.4`. Also ensure that the `Full Changelog` link points to the new version tag instead of the `HEAD`.
-3. Commit generated [CHANGELOG.md](./CHANGELOG.md) file.
-4. Make a PR against `main`.
-5. Once the PR is approved, merge it into `main`.
-6. Add a tag and push it to origin - e.g.: `git tag v1.2.4 && git push origin v1.2.4`.
-7. Visit https://github.com/ably/laravel-broadcaster/tags and add release notes for the release including links to the changelog entry.
-8. Visit https://packagist.org/packages/ably/laravel-broadcaster, log in to Packagist, and click the "Update" button.
+2. Update the lib version in `src/AblyBroadcaster.php`
+3. Run [`github_changelog_generator`](https://github.com/skywinder/Github-Changelog-Generator) to automate the update of the [CHANGELOG](./CHANGELOG.md). Once the `CHANGELOG` update has completed, manually change the `Unreleased` heading and link with the current version number such as `1.2.4`. Also ensure that the `Full Changelog` link points to the new version tag instead of the `HEAD`.
+4. Commit generated [CHANGELOG.md](./CHANGELOG.md) file.
+5. Make a PR against `main`.
+6. Once the PR is approved, merge it into `main`.
+7. Add a tag and push it to origin - e.g.: `git tag v1.2.4 && git push origin v1.2.4`.
+8. Visit https://github.com/ably/laravel-broadcaster/tags and add release notes for the release including links to the changelog entry.
+9. Visit https://packagist.org/packages/ably/laravel-broadcaster, log in to Packagist, and click the "Update" button.
