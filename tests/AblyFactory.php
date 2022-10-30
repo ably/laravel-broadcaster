@@ -10,20 +10,15 @@ use Ably\LaravelBroadcaster\AblyBroadcaster;
 class AblyFactory
 {
     /**
-     * Make a new AblyRest client and loads default options, if necessary
+     * Make a new AblyRest client
      *
-     * @param array|null $clientOptions Options for the created instance, if not provided
-     * the default config is used.
+     * @param array|null $clientOptions Options for the created instance
      *
      * @return \Ably\AblyRest
      */
-    public function make($clientOptions = null)
+    public function make($clientOptions)
     {
-        if ($clientOptions) {
-            return $this->createInstance($clientOptions);
-        } else {
-            return $this->createInstance(config('ably'));
-        }
+        return $this->createInstance($clientOptions);
     }
 
     /**
