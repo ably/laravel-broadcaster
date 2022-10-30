@@ -6,7 +6,7 @@
 
 _[Ably](https://ably.com) is the platform that powers synchronized digital experiences in realtime. Whether attending an event in a virtual venue, receiving realtime financial information, or monitoring live car performance data – consumers simply expect realtime digital experiences as standard. Ably provides a suite of APIs to build, extend, and deliver powerful digital experiences in realtime for more than 250 million devices across 80 countries each month. Organizations like Bloomberg, HubSpot, Verizon, and Hopin depend on Ably’s platform to offload the growing complexity of business-critical realtime data synchronization at global scale. For more information, see the [Ably documentation](https://ably.com/docs)._
 
-This implements ably broadcaster as a independent service provider library for [Laravel](https://laravel.com/) using [ably-php](https://github.com/ably/ably-php). This library works with [ably-js](https://github.com/ably/ably-js) based [ably-laravel-echo](https://github.com/ably-forks/echo) framework having enhanced features at client side. Main aim is to replace old [pusher-client based ably broadcaster](https://laravel.com/docs/9.x/broadcasting#client-ably).
+This implements ably broadcaster as a independent service provider library for [Laravel](https://laravel.com/) using [ably-php](https://github.com/ably/ably-php). This library works with [ably-js](https://github.com/ably/ably-js) based [ably-laravel-echo](https://github.com/ably-forks/echo) client framework with enhanced features. Main aim is to replace old [pusher-client based ably broadcaster](https://laravel.com/docs/9.x/broadcasting#client-ably).
 
 ## Features
 - Native ably-js support.
@@ -14,6 +14,7 @@ This implements ably broadcaster as a independent service provider library for [
 - Disable public channels.
 - Update channel permissions for a user.
 - Update token expirty.
+- Fully compatible with [pusher/pusher-based](https://laravel.com/docs/9.x/broadcasting#client-ably) broadcasters, see [migrating section](#migrating-from-old-ablybroadcaster)
 
 ## Bug Fixes
 - Fixes [broadcasting events to others](https://faqs.ably.com/why-isnt-the-broadcast-only-to-others-functionality-working-in-laravel-with-the-ably-broadcaster).
@@ -37,8 +38,6 @@ composer require ably/laravel-broadcaster
 ```dotenv
 BROADCAST_DRIVER=ably
 ABLY_KEY=ROOT_API_KEY_COPIED_FROM_ABLY_WEB_DASHBOARD
-ABLY_DISABLE_PUBLIC_CHANNELS=false // optional, default : false
-ABLY_TOKEN_EXPIRY=3600 // optional, default : 3600 seconds
 ```
 
 2. Uncomment `BroadcastServiceProvider` in `config/app.php`
@@ -53,20 +52,12 @@ ABLY_TOKEN_EXPIRY=3600 // optional, default : 3600 seconds
         App\Providers\RouteServiceProvider::class,
 </pre>
 
-4. If running Laravel 8 or older, edit `config/broadcasting.php`, set following env. variables in the `connections` array
+4. If running Laravel 8 or older, edit `config/broadcasting.php`, add `ably` section to the `connections` array
 ```php
         'ably' => [
             'driver' => 'ably',
-            'key' => env('ABLY_KEY'),
-            'disable_public_channels' => env('ABLY_DISABLE_PUBLIC_CHANNELS', false),
-            'token_expiry' => env('ABLY_TOKEN_EXPIRY', 3600)
+            'key' => env('ABLY_KEY')
         ],
-```
-
-5. For Laravel 9, edit `config/broadcasting.php`, set following env. variables in the `connections->ably` array
-```php
-            'disable_public_channels' => env('ABLY_DISABLE_PUBLIC_CHANNELS', false),
-            'token_expiry' => env('ABLY_TOKEN_EXPIRY', 3600)
 ```
 
 Finally, you are ready to install and configure [Ably Laravel Echo](https://github.com/ably-forks/echo/), which will receive the broadcast events on the client-side.
@@ -114,11 +105,7 @@ npm run dev
 
 ## Configure advanced features
 
-**1. Update token expiry. Default: 3600 seconds (1 hr)**
-- Update `ABLY_TOKEN_EXPIRY` in `.env` file. 
-- Update `ably` section under `config/broadcasting.php` with `'token_expiry' => env('ABLY_TOKEN_EXPIRY', 3600)`
-
-**2. Modify channel capability**
+**1. Modify private/presence channel capability. Default: Full capability**
 - Channel access can be changed as per [Channel Capabilities](https://ably.com/docs/core-features/authentication#capability-operations)
 ```php
   // file - routes/channels.php
@@ -134,24 +121,40 @@ npm run dev
   });
 ```
 
-**3. Disable public channels**
+**2. Disable public channels. Default: false**
 - Update `ABLY_DISABLE_PUBLIC_CHANNELS`, set as **true** in `.env` file. 
 - Update `ably` section under `config/broadcasting.php` with `'disable_public_channels' => env('ABLY_DISABLE_PUBLIC_CHANNELS', false)`
+
+**3. Update token expiry. Default: 3600 seconds (1 hr)**
+- Update `ABLY_TOKEN_EXPIRY` in `.env` file. 
+- Update `ably` section under `config/broadcasting.php` with `'token_expiry' => env('ABLY_TOKEN_EXPIRY', 3600)`
 
 <a name="migrate-pusher-to-ably"></a>
 ## Migrating from old AblyBroadcaster
 - The current Ably broadcaster is fully compatible with the old Pusher based AblyBroadcaster.
 -  The only difference is for **Leaving the channel**, you should use [Ably Channel Namespaces](https://ably.com/docs/general/channel-rules-namespaces) conventions
 ```js
-Echo.channel('channel1').leaveChannel("public:channel1")
-Echo.private('channel2').leaveChannel("private:channel2")
-Echo.join('channel3').leaveChannel("presence:channel3")
+ // public channel
+Echo.channel('channel1');
+Echo.leaveChannel("public:channel1");
+// private channel
+Echo.private('channel2'); 
+Echo.leaveChannel("private:channel2")
+// presence channel
+Echo.join('channel3'); 
+Echo.leaveChannel("presence:channel3")
 ```
 instead of [Pusher Channel Conventions](https://pusher.com/docs/channels/using_channels/channels/#channel-types)
 ```js
-Echo.channel('channel1').leaveChannel("channel1")
-Echo.private('channel2').leaveChannel("private-channel2")
-Echo.join('channel3').leaveChannel("presence-channel3")
+ // public channel
+Echo.channel('channel1');
+Echo.leaveChannel("channel1");
+// private channel
+Echo.private('channel2'); 
+Echo.leaveChannel("private-channel2")
+// presence channel
+Echo.join('channel3'); 
+Echo.leaveChannel("presence-channel3")
 ```
 
 ## Addtional Documentation
