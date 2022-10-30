@@ -3,8 +3,10 @@
 namespace Ably\LaravelBroadcaster\Tests;
 
 use Ably\AblyRest;
+use Ably\Http;
 use Ably\LaravelBroadcaster\AblyBroadcaster;
 use Ably\LaravelBroadcaster\Utils;
+use Ably\Utils\Miscellaneous;
 use Illuminate\Http\Request;
 use Mockery as m;
 use PHPUnit\Framework\TestCase;
@@ -324,5 +326,35 @@ class AblyBroadcasterTest extends TestCase
                 ->andReturn(null);
 
         return $request;
+    }
+
+    public function testLaravelAblyAgentHeader()
+    {
+        $ably = (new AblyFactory())->make([
+            'key' => 'abcd:efgh',
+            'httpClass' => 'Ably\LaravelBroadcaster\Tests\HttpMock',
+        ]);
+        $ably->time();
+        $expectedLaravelHeader = 'ably-php/'.\Ably\Defaults::LIB_VERSION.' '.'php/'.Miscellaneous::getNumeric(phpversion()).' laravel-broadcaster/'. AblyBroadcaster::LIB_VERSION;
+        $this->assertcontains( 'Ably-Agent: '.$expectedLaravelHeader, $ably->http->lastHeaders, 'Expected Laravel broadcaster header in HTTP request' );
+    }
+}
+
+
+class HttpMock extends Http
+{
+    public $lastUrl;
+    public $lastHeaders;
+
+    public function request($method, $url, $headers = array(), $params = array())
+    {
+        $this->lastUrl = $url;
+        $this->lastHeaders = $headers;
+
+        // mock response to /time
+        return array(
+            'headers' => "HTTP/1.1 200 OK\n",
+            'body' => array(round(microtime(true) * 1000 ), 0),
+        );
     }
 }
