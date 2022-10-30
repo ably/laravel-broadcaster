@@ -330,12 +330,10 @@ class AblyBroadcasterTest extends TestCase
 
     public function testLaravelAblyAgentHeader()
     {
-        $ablyFactory = app()->make('\Ably\LaravelBroadcaster\Tests\AblyFactory');
-        $ably = $ablyFactory->make([
+        $ably = (new AblyFactory())->make([
             'key' => 'abcd:efgh',
             'httpClass' => 'Ably\LaravelBroadcaster\Tests\HttpMock',
         ]);
-
         $ably->time();
         $expectedLaravelHeader = 'ably-php/'.\Ably\Defaults::LIB_VERSION.' '.'php/'.Miscellaneous::getNumeric(phpversion()).' laravel-broadcaster/'. AblyBroadcaster::LIB_VERSION;
         $this->assertcontains( 'Ably-Agent: '.$expectedLaravelHeader, $ably->http->lastHeaders, 'Expected Laravel broadcaster header in HTTP request' );
