@@ -131,7 +131,7 @@ npm run dev
 
 <a name="migrate-pusher-to-ably"></a>
 ## Migrating from pusher/pusher-compatible broadcasters
-- The current Ably broadcaster is fully compatible with the [pusher](https://laravel.com/docs/9.x/broadcasting#pusher-channels), [old AblyBroadcaster](https://laravel.com/docs/9.x/broadcasting#ably) and [pusher compatible open source broadcasters](https://laravel.com/docs/9.x/broadcasting#open-source-alternatives).
+- The current Ably broadcaster is fully compatible with the [pusher](https://laravel.com/docs/9.x/broadcasting#pusher-channels), [old Ably Broadcaster](https://laravel.com/docs/9.x/broadcasting#ably) and [pusher compatible open source broadcasters](https://laravel.com/docs/9.x/broadcasting#open-source-alternatives).
 - The only difference is for **Leaving the channel** on client side, you should use [Ably Channel Namespaces](https://ably.com/docs/general/channel-rules-namespaces) conventions.
 ```js
  // public channel
