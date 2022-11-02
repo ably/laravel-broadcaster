@@ -11,10 +11,11 @@ This implements ably broadcaster as a independent service provider library for [
 ## Features
 - Native ably-js support.
 - Low latency for client-events.
-- Disable public channels.
-- Update channel permissions for a user.
+- Update channel permissions for each user.
 - Update token expirty.
-- Fully compatible with [pusher/pusher-based](https://laravel.com/docs/9.x/broadcasting#client-ably) broadcasters, see [migrating section](#migrating-from-old-ablybroadcaster)
+- Disable public channels.
+- Fully compatible with [pusher/pusher-based broadcaster](https://laravel.com/docs/9.x/broadcasting#client-ably), see [migrating section](#migrating-from-old-ablybroadcaster).
+- Integration tested using [ably sandbox](https://github.com/ably-forks/laravel-echo/tree/master/tests/ably).
 
 ## Bug Fixes
 - Fixes [broadcasting events to others](https://faqs.ably.com/why-isnt-the-broadcast-only-to-others-functionality-working-in-laravel-with-the-ably-broadcaster).
@@ -90,8 +91,7 @@ You can set custom [clientOptions](https://ably.com/docs/api/realtime-sdk?lang=j
 
 ```
     broadcaster: 'ably',
-    authEndpoint: 'http://www.localhost:8000/broadcasting/auth'
-      // Additional ably specific options - https://ably.com/docs/api/realtime-sdk?lang=javascript#client-options  
+    authEndpoint: 'http://www.localhost:8000/broadcasting/auth', 
     realtimeHost: 'realtime.ably.com',
     restHost: 'rest.ably.com',
     port: '80',
@@ -130,9 +130,9 @@ npm run dev
 - Update `ably` section under `config/broadcasting.php` with `'token_expiry' => env('ABLY_TOKEN_EXPIRY', 3600)`
 
 <a name="migrate-pusher-to-ably"></a>
-## Migrating from old AblyBroadcaster
-- The current Ably broadcaster is fully compatible with the old Pusher based AblyBroadcaster.
--  The only difference is for **Leaving the channel**, you should use [Ably Channel Namespaces](https://ably.com/docs/general/channel-rules-namespaces) conventions
+## Migrating from Pusher
+- The current Ably broadcaster is fully compatible with the Pusher / Pusher based AblyBroadcaster.
+- The only difference is for **Leaving the channel** on client side, you should use [Ably Channel Namespaces](https://ably.com/docs/general/channel-rules-namespaces) conventions.
 ```js
  // public channel
 Echo.channel('channel1');
