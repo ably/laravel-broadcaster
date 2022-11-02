@@ -87,11 +87,11 @@ window.Echo.connector.ably.connection.on(stateChange => {
     }
 });
 ```
-You can set custom [clientOptions](https://ably.com/docs/api/realtime-sdk?lang=javascript#client-options) when creating an `Echo` instance.
+You can set additional ably-specific [clientOptions](https://ably.com/docs/api/realtime-sdk?lang=javascript#client-options) when creating an `Echo` instance.
 
 ```
     broadcaster: 'ably',
-    authEndpoint: 'http://www.localhost:8000/broadcasting/auth', 
+    authEndpoint: 'http://www.localhost:8000/broadcasting/auth', // absolute or relative url to laravel-server 
     realtimeHost: 'realtime.ably.com',
     restHost: 'rest.ably.com',
     port: '80',
