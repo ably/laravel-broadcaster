@@ -12,10 +12,9 @@ This implements ably broadcaster as a independent service provider library for [
 - Native ably-js support.
 - Low latency for client-events.
 - Update channel permissions for each user.
-- Update token expirty.
+- Update token expiry.
 - Disable public channels.
 - Fully compatible with pusher/pusher-compatible broadcasters, see [migrating section](#migrating-from-pusherpusher-compatible-broadcasters).
-- Integration tested using [ably sandbox](https://github.com/ably-forks/laravel-echo/tree/master/tests/ably).
 
 ## Bug Fixes
 - Fixes [broadcasting events to others](https://faqs.ably.com/why-isnt-the-broadcast-only-to-others-functionality-working-in-laravel-with-the-ably-broadcaster).
@@ -87,7 +86,7 @@ window.Echo.connector.ably.connection.on(stateChange => {
     }
 });
 ```
-You can set additional ably-specific [clientOptions](https://ably.com/docs/api/realtime-sdk?lang=javascript#client-options) when creating an `Echo` instance.
+You can set additional ably-js [clientOptions](https://ably.com/docs/api/realtime-sdk?lang=javascript#client-options) when creating an `Echo` instance.
 
 ```
     broadcaster: 'ably',
@@ -170,9 +169,13 @@ Echo.leaveChannel("presence-channel3")
 </br>
 
 ## Testing
+- To run tests use 
+
 ``` bash
 composer test
 ```
+- Integration tested using [ably sandbox](https://ably.com/docs/client-lib-development-guide/test-api) available at [ably-laravel-echo](https://github.com/ably-forks/laravel-echo/tree/master/tests/ably) repository.
+
 
 ## Changelog
 Please see [CHANGELOG](CHANGELOG.md) for more information what has changed recently.
