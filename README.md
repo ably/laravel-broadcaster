@@ -39,6 +39,7 @@ composer require ably/laravel-broadcaster
 BROADCAST_DRIVER=ably
 ABLY_KEY=ROOT_API_KEY_COPIED_FROM_ABLY_WEB_DASHBOARD
 ```
+> **Warning** - Do not expose **ABLY_KEY** to client code.
 
 2. Uncomment `BroadcastServiceProvider` in `config/app.php`
 <pre>
@@ -130,7 +131,7 @@ npm run dev
 
 <a name="migrate-pusher-to-ably"></a>
 ## Migrating from pusher/pusher-compatible broadcasters
-- The current Ably broadcaster is fully compatible with the [Pusher](https://laravel.com/docs/9.x/broadcasting#pusher-channels) / [Pusher compatible AblyBroadcaster](https://laravel.com/docs/9.x/broadcasting#ably).
+- The current Ably broadcaster is fully compatible with the [pusher](https://laravel.com/docs/9.x/broadcasting#pusher-channels), [old AblyBroadcaster](https://laravel.com/docs/9.x/broadcasting#ably) and [pusher compatible open source broadcasters](https://laravel.com/docs/9.x/broadcasting#open-source-alternatives).
 - The only difference is for **Leaving the channel** on client side, you should use [Ably Channel Namespaces](https://ably.com/docs/general/channel-rules-namespaces) conventions.
 ```js
  // public channel
@@ -174,7 +175,8 @@ Echo.leaveChannel("presence-channel3")
 ``` bash
 composer test
 ```
-- Integration tested using [ably sandbox](https://ably.com/docs/client-lib-development-guide/test-api) available at [ably-laravel-echo](https://github.com/ably-forks/laravel-echo/tree/master/tests/ably) repository.
+- Integration tested using [ably sandbox](https://ably.com/docs/client-lib-development-guide/test-api).
+- Integration tests available at [ably-laravel-echo](https://github.com/ably-forks/laravel-echo/tree/master/tests/ably) repository.
 
 
 ## Changelog
