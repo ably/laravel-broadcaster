@@ -14,7 +14,7 @@ This implements ably broadcaster as a independent service provider library for [
 - Update channel permissions for each user.
 - Update token expirty.
 - Disable public channels.
-- Fully compatible with [pusher/pusher-based broadcaster](https://laravel.com/docs/9.x/broadcasting#client-ably), see [migrating section](#migrating-from-old-ablybroadcaster).
+- Fully compatible with pusher/pusher-compatible broadcasters, see [migrating section](#migrating-from-pusherpusher-compatible-broadcasters).
 - Integration tested using [ably sandbox](https://github.com/ably-forks/laravel-echo/tree/master/tests/ably).
 
 ## Bug Fixes
@@ -130,8 +130,8 @@ npm run dev
 - Update `ably` section under `config/broadcasting.php` with `'token_expiry' => env('ABLY_TOKEN_EXPIRY', 3600)`
 
 <a name="migrate-pusher-to-ably"></a>
-## Migrating from Pusher
-- The current Ably broadcaster is fully compatible with the Pusher / Pusher based AblyBroadcaster.
+## Migrating from pusher/pusher-compatible broadcasters
+- The current Ably broadcaster is fully compatible with the [Pusher](https://laravel.com/docs/9.x/broadcasting#pusher-channels) / [Pusher compatible AblyBroadcaster](https://laravel.com/docs/9.x/broadcasting#ably).
 - The only difference is for **Leaving the channel** on client side, you should use [Ably Channel Namespaces](https://ably.com/docs/general/channel-rules-namespaces) conventions.
 ```js
  // public channel
