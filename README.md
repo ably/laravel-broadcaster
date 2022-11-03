@@ -73,7 +73,7 @@ npm install --save-dev @ably/laravel-echo ably
 Once Echo is installed, you are ready to create a fresh Echo instance in your applications JavaScript. A great place to do this is at the bottom of the `resources/js/bootstrap.js` file that is included with the Laravel framework. By default, an example Echo configuration is already included in this file; however, the default configuration in the `bootstrap.js` file is intended for Pusher. You may copy the configuration below to transition your configuration to Ably.
 
 ```js
-import Echo from 'laravel-echo';
+import Echo from '@ably/laravel-echo';
 import * as Ably from 'ably';
 
 window.Ably = Ably;
