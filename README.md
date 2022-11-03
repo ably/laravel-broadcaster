@@ -11,10 +11,10 @@ This implements ably broadcaster as a independent service provider library for [
 ## Features
 - Native ably-js support.
 - Low latency for client-events.
+- Update channel permissions for each user.
+- Update token expiry.
 - Disable public channels.
-- Update channel permissions for a user.
-- Update token expirty.
-- Fully compatible with [pusher/pusher-based](https://laravel.com/docs/9.x/broadcasting#client-ably) broadcasters, see [migrating section](#migrating-from-old-ablybroadcaster)
+- Fully compatible with pusher/pusher-compatible broadcasters, see [migrating section](#migrating-from-pusherpusher-compatible-broadcasters).
 
 ## Bug Fixes
 - Fixes [broadcasting events to others](https://faqs.ably.com/why-isnt-the-broadcast-only-to-others-functionality-working-in-laravel-with-the-ably-broadcaster).
@@ -39,6 +39,7 @@ composer require ably/laravel-broadcaster
 BROADCAST_DRIVER=ably
 ABLY_KEY=ROOT_API_KEY_COPIED_FROM_ABLY_WEB_DASHBOARD
 ```
+> **Warning** - Do not expose **ABLY_KEY** to client code.
 
 2. Uncomment `BroadcastServiceProvider` in `config/app.php`
 <pre>
@@ -86,12 +87,11 @@ window.Echo.connector.ably.connection.on(stateChange => {
     }
 });
 ```
-You can set custom [clientOptions](https://ably.com/docs/api/realtime-sdk?lang=javascript#client-options) when creating an `Echo` instance.
+You can set additional ably-js [clientOptions](https://ably.com/docs/api/realtime-sdk?lang=javascript#client-options) when creating an `Echo` instance.
 
 ```
     broadcaster: 'ably',
-    authEndpoint: 'http://www.localhost:8000/broadcasting/auth'
-      // Additional ably specific options - https://ably.com/docs/api/realtime-sdk?lang=javascript#client-options  
+    authEndpoint: 'http://www.localhost:8000/broadcasting/auth', // absolute or relative url to laravel-server 
     realtimeHost: 'realtime.ably.com',
     restHost: 'rest.ably.com',
     port: '80',
@@ -130,9 +130,9 @@ npm run dev
 - Update `ably` section under `config/broadcasting.php` with `'token_expiry' => env('ABLY_TOKEN_EXPIRY', 3600)`
 
 <a name="migrate-pusher-to-ably"></a>
-## Migrating from old AblyBroadcaster
-- The current Ably broadcaster is fully compatible with the old Pusher based AblyBroadcaster.
--  The only difference is for **Leaving the channel**, you should use [Ably Channel Namespaces](https://ably.com/docs/general/channel-rules-namespaces) conventions
+## Migrating from pusher/pusher-compatible broadcasters
+- The current Ably broadcaster is fully compatible with the [pusher](https://laravel.com/docs/9.x/broadcasting#pusher-channels), [old Ably Broadcaster](https://laravel.com/docs/9.x/broadcasting#ably) and [pusher compatible open source broadcasters](https://laravel.com/docs/9.x/broadcasting#open-source-alternatives).
+- The only difference is for **Leaving the channel** on client side, you should use [Ably Channel Namespaces](https://ably.com/docs/general/channel-rules-namespaces) conventions.
 ```js
  // public channel
 Echo.channel('channel1');
@@ -170,9 +170,14 @@ Echo.leaveChannel("presence-channel3")
 </br>
 
 ## Testing
+- To run tests use 
+
 ``` bash
 composer test
 ```
+- Integration tested using [ably sandbox](https://ably.com/docs/client-lib-development-guide/test-api).
+- Integration tests available at [ably-laravel-echo](https://github.com/ably-forks/laravel-echo/tree/master/tests/ably) repository.
+
 
 ## Changelog
 Please see [CHANGELOG](CHANGELOG.md) for more information what has changed recently.
