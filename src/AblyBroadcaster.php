@@ -50,13 +50,11 @@ class AblyBroadcaster extends Broadcaster
     public function __construct(AblyRest $ably, $config)
     {
         $this->ably = $ably;
-        if (self::$serverTimeDiff == null) {
-            $serverTimeDiff = Cache::remember('server_time_diff', 86400, function() {
-                return time() - round($this->ably->time() / 1000);
-            });
 
-            self::setServerTimeDiff($serverTimeDiff);
-        }
+        self::$serverTimeDiff = Cache::remember('server_time_diff', 86400, function() {
+            return time() - round($this->ably->time() / 1000);
+        });
+
         if (array_key_exists('disable_public_channels', $config) && $config['disable_public_channels']) {
             $this->defaultChannelClaims = ['public:*' => ['channel-metadata']];
         }
@@ -66,15 +64,6 @@ class AblyBroadcaster extends Broadcaster
     }
 
     private static $serverTimeDiff = null;
-
-    /**
-     * @param  int  $timeDiff
-     * @return void
-     */
-    private static function setServerTimeDiff($timeDiff)
-    {
-        self::$serverTimeDiff = $timeDiff;
-    }
 
     /**
      * @return int
