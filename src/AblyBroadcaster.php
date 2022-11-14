@@ -59,7 +59,7 @@ class AblyBroadcaster extends Broadcaster
         $this->ably = $ably;
 
         // Local file cache is preferred to avoid sharing serverTimeDiff across different servers
-        $this->serverTimeDiff = Cache::store('file')->remember('ably_server_time_diff', 86400, function() {
+        $this->serverTimeDiff = Cache::store('file')->remember('ably_server_time_diff', 6 * 3600, function() {
             return time() - round($this->ably->time() / 1000);
         });
 
