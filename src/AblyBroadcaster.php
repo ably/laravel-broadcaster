@@ -7,6 +7,7 @@ use Ably\Exceptions\AblyException;
 use Ably\Models\Message as AblyMessage;
 use Illuminate\Broadcasting\Broadcasters\Broadcaster;
 use Illuminate\Broadcasting\BroadcastException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -50,7 +51,11 @@ class AblyBroadcaster extends Broadcaster
     {
         $this->ably = $ably;
         if (self::$serverTimeDiff == null) {
-            self::setServerTime(round($this->ably->time() / 1000));
+            $serverTimeDiff = Cache::remember('server_time_diff', 86400, function() {
+                return time() - round($this->ably->time() / 1000);
+            });
+
+            self::setServerTimeDiff($serverTimeDiff);
         }
         if (array_key_exists('disable_public_channels', $config) && $config['disable_public_channels']) {
             $this->defaultChannelClaims = ['public:*' => ['channel-metadata']];
@@ -63,12 +68,12 @@ class AblyBroadcaster extends Broadcaster
     private static $serverTimeDiff = null;
 
     /**
-     * @param  int  $time
+     * @param  int  $timeDiff
      * @return void
      */
-    private static function setServerTime($time)
+    private static function setServerTimeDiff($timeDiff)
     {
-        self::$serverTimeDiff = time() - $time;
+        self::$serverTimeDiff = $timeDiff;
     }
 
     /**
