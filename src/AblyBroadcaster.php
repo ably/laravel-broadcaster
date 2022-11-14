@@ -41,6 +41,13 @@ class AblyBroadcaster extends Broadcaster
     ];
 
     /**
+     * Used for storing the difference in seconds between system time and Ably server time
+     *
+     * @var int
+     */
+    private $serverTimeDiff;
+
+    /**
      * Create a new broadcaster instance.
      *
      * @param  \Ably\AblyRest  $ably
@@ -63,8 +70,6 @@ class AblyBroadcaster extends Broadcaster
             $this->tokenExpiry = $config['token_expiry'];
         }
     }
-
-    private $serverTimeDiff;
 
     /**
      * @return int
