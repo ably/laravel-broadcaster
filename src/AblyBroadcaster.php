@@ -51,7 +51,7 @@ class AblyBroadcaster extends Broadcaster
     {
         $this->ably = $ably;
 
-        self::$serverTimeDiff = Cache::remember('server_time_diff', 86400, function() {
+        $this->serverTimeDiff = Cache::remember('server_time_diff', 86400, function() {
             return time() - round($this->ably->time() / 1000);
         });
 
@@ -63,15 +63,15 @@ class AblyBroadcaster extends Broadcaster
         }
     }
 
-    private static $serverTimeDiff = null;
+    private $serverTimeDiff;
 
     /**
      * @return int
      */
-    private static function getServerTime()
+    private function getServerTime()
     {
-        if (self::$serverTimeDiff != null) {
-            return time() - self::$serverTimeDiff;
+        if ($this->serverTimeDiff != null) {
+            return time() - $this->serverTimeDiff;
         }
 
         return time();
@@ -202,7 +202,7 @@ class AblyBroadcaster extends Broadcaster
         // Set capabilities for public channel as per https://ably.com/docs/core-features/authentication#capability-operations
         $channelClaims = $this->defaultChannelClaims;
         $serverTimeFn = function () {
-            return self::getServerTime();
+            return $this->getServerTime();
         };
         if ($token && Utils::isJwtValid($token, $serverTimeFn, $this->getPrivateToken())) {
             $payload = Utils::parseJwt($token)['payload'];
