@@ -36,6 +36,10 @@ jobs:
             php-version: 7.3
           - laravel-version: 9.*
             php-version: 7.4
+          - laravel-version: 6.*
+            php-version: 8.1
+          - laravel-version: 7.*
+            php-version: 8.1
 
     name: P${{ matrix.php-version }} - L${{ matrix.laravel-version }}
 
