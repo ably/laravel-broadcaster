@@ -7,6 +7,7 @@ use Ably\Exceptions\AblyException;
 use Ably\Models\Message as AblyMessage;
 use Illuminate\Broadcasting\Broadcasters\Broadcaster;
 use Illuminate\Broadcasting\BroadcastException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -40,6 +41,13 @@ class AblyBroadcaster extends Broadcaster
     ];
 
     /**
+     * Used for storing the difference in seconds between system time and Ably server time
+     *
+     * @var int
+     */
+    private $serverTimeDiff;
+
+    /**
      * Create a new broadcaster instance.
      *
      * @param  \Ably\AblyRest  $ably
@@ -49,9 +57,12 @@ class AblyBroadcaster extends Broadcaster
     public function __construct(AblyRest $ably, $config)
     {
         $this->ably = $ably;
-        if (self::$serverTimeDiff == null) {
-            self::setServerTime(round($this->ably->time() / 1000));
-        }
+
+        // Local file cache is preferred to avoid sharing serverTimeDiff across different servers
+        $this->serverTimeDiff = Cache::store('file')->remember('ably_server_time_diff', 6 * 3600, function() {
+            return time() - round($this->ably->time() / 1000);
+        });
+
         if (array_key_exists('disable_public_channels', $config) && $config['disable_public_channels']) {
             $this->defaultChannelClaims = ['public:*' => ['channel-metadata']];
         }
@@ -60,24 +71,13 @@ class AblyBroadcaster extends Broadcaster
         }
     }
 
-    private static $serverTimeDiff = null;
-
-    /**
-     * @param  int  $time
-     * @return void
-     */
-    private static function setServerTime($time)
-    {
-        self::$serverTimeDiff = time() - $time;
-    }
-
     /**
      * @return int
      */
-    private static function getServerTime()
+    private function getServerTime()
     {
-        if (self::$serverTimeDiff != null) {
-            return time() - self::$serverTimeDiff;
+        if ($this->serverTimeDiff != null) {
+            return time() - $this->serverTimeDiff;
         }
 
         return time();
@@ -208,7 +208,7 @@ class AblyBroadcaster extends Broadcaster
         // Set capabilities for public channel as per https://ably.com/docs/core-features/authentication#capability-operations
         $channelClaims = $this->defaultChannelClaims;
         $serverTimeFn = function () {
-            return self::getServerTime();
+            return $this->getServerTime();
         };
         if ($token && Utils::isJwtValid($token, $serverTimeFn, $this->getPrivateToken())) {
             $payload = Utils::parseJwt($token)['payload'];
