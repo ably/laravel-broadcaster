@@ -343,11 +343,11 @@ class AblyBroadcasterTest extends TestCase
         $broadcaster = m::mock(AblyBroadcasterExposed::class, [$this->ably, []])->makePartial();
 
         $payload = [
-            "foo" => "bar",
-            "socket" => null
+            'foo' => 'bar',
+            'socket' => null
         ];
 
-        $message = $broadcaster->buildAblyMessage("testEvent", $payload);
+        $message = $broadcaster->buildAblyMessage('testEvent', $payload);
         self::assertArrayNotHasKey('socket', $message->data);
     }
 }
