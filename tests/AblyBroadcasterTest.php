@@ -337,8 +337,28 @@ class AblyBroadcasterTest extends TestCase
         $expectedLaravelHeader = 'ably-php/'.\Ably\Defaults::LIB_VERSION.' '.'php/'.Miscellaneous::getNumeric(phpversion()).' laravel-broadcaster/'. AblyBroadcaster::LIB_VERSION;
         $this->assertcontains( 'Ably-Agent: '.$expectedLaravelHeader, $ably->http->lastHeaders, 'Expected Laravel broadcaster header in HTTP request' );
     }
+
+    public function testPayloadShouldNotIncludeSocketKey()
+    {
+        $broadcaster = m::mock(AblyBroadcasterExposed::class, [$this->ably, []])->makePartial();
+
+        $payload = [
+            'foo' => 'bar',
+            'socket' => null
+        ];
+
+        $message = $broadcaster->buildAblyMessage('testEvent', $payload);
+        self::assertArrayNotHasKey('socket', $message->data);
+    }
 }
 
+class AblyBroadcasterExposed extends AblyBroadcaster
+{
+    public function buildAblyMessage($event, $payload = [])
+    {
+        return parent::buildAblyMessage($event, $payload);
+    }
+}
 
 class HttpMock extends Http
 {

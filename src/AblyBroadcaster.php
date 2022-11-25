@@ -9,6 +9,7 @@ use Illuminate\Broadcasting\Broadcasters\Broadcaster;
 use Illuminate\Broadcasting\BroadcastException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
+use Illuminate\Support\Arr;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class AblyBroadcaster extends Broadcaster
@@ -317,10 +318,12 @@ class AblyBroadcaster extends Broadcaster
      */
     protected function buildAblyMessage($event, $payload = [])
     {
-        return tap(new AblyMessage, function ($message) use ($event, $payload) {
+        $socket = Arr::pull($payload, 'socket');
+
+        return tap(new AblyMessage, function ($message) use ($event, $payload, $socket) {
             $message->name = $event;
             $message->data = $payload;
-            $message->connectionKey = data_get($payload, 'socket');
+            $message->connectionKey = $socket;
         });
     }
 
