@@ -46,7 +46,7 @@ class AblyBroadcaster extends Broadcaster
      *
      * @var int
      */
-    private $serverTimeDiff;
+    private $serverTimeDiff = 0;
 
     /**
      * Create a new broadcaster instance.
@@ -59,11 +59,12 @@ class AblyBroadcaster extends Broadcaster
     {
         $this->ably = $ably;
 
-        // Local file cache is preferred to avoid sharing serverTimeDiff across different servers
-        $this->serverTimeDiff = Cache::store('file')->remember('ably_server_time_diff', 6 * 3600, function() {
-            return time() - round($this->ably->time() / 1000);
-        });
-
+        if (array_key_exists('use_internet_time', $config) && $config['use_internet_time']) {
+            // Local file cache is preferred to avoid sharing serverTimeDiff across different servers
+            $this->serverTimeDiff = Cache::store('file')->remember('ably_server_time_diff', 6 * 3600, function() {
+                return time() - round($this->ably->time() / 1000);
+            });
+        }
         if (array_key_exists('disable_public_channels', $config) && $config['disable_public_channels']) {
             $this->defaultChannelClaims = ['public:*' => ['channel-metadata']];
         }
@@ -77,11 +78,7 @@ class AblyBroadcaster extends Broadcaster
      */
     private function getServerTime()
     {
-        if ($this->serverTimeDiff != null) {
-            return time() - $this->serverTimeDiff;
-        }
-
-        return time();
+        return time() - $this->serverTimeDiff;
     }
 
     /**
