@@ -360,7 +360,6 @@ class AblyBroadcasterExposed extends AblyBroadcaster
     }
 }
 
-
 class HttpMock extends Http
 {
     public $lastUrl;
