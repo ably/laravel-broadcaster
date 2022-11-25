@@ -122,7 +122,7 @@ npm run dev
 ```
 
 **2. Disable public channels. Default: false**
-- Set `ABLY_DISABLE_PUBLIC_CHANNELS` as **true** in `.env` file.
+- Set `ABLY_DISABLE_PUBLIC_CHANNELS` as **true** in **.env** file.
 ```dotenv
     ABLY_DISABLE_PUBLIC_CHANNELS=true
 ```
@@ -136,7 +136,7 @@ npm run dev
 ```
 
 **3. Update token expiry. Default: 3600 seconds (1 hr)**
-- Set `ABLY_TOKEN_EXPIRY` in .env file.
+- Set `ABLY_TOKEN_EXPIRY` in **.env** file.
 ```dotenv
     ABLY_TOKEN_EXPIRY=21600
 ```
@@ -148,6 +148,22 @@ npm run dev
             'token_expiry' => env('ABLY_TOKEN_EXPIRY', 3600)
         ],
 ```
+
+**4. Use internet time for issued token expiry. Default: false**
+- Internet time in UTC format is fetched from `ably server` and cached every 6 hrs.
+- Set `ABLY_USE_INTERNET_TIME` as **true** in **.env** file.
+```dotenv
+    ABLY_USE_INTERNET_TIME=true
+```
+- Update ably section under `config/broadcasting.php` with
+```php
+        'ably' => [
+            'driver' => 'ably',
+            'key' => env('ABLY_KEY'),
+            'use_internet_time' => env('ABLY_USE_INTERNET_TIME', false)
+        ],
+```
+
 
 <a name="migrate-pusher-to-ably"></a>
 ## Migrating from pusher/pusher-compatible broadcasters
