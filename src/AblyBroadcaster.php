@@ -37,7 +37,7 @@ class AblyBroadcaster extends Broadcaster
      *
      * @var array
      */
-    private $publicChannelClaims = [
+    private $publicChannelsClaims = [
         'public:*' => ['subscribe', 'history', 'channel-metadata'],
     ];
 
@@ -66,7 +66,7 @@ class AblyBroadcaster extends Broadcaster
             });
         }
         if (array_key_exists('disable_public_channels', $config) && $config['disable_public_channels']) {
-            $this->publicChannelClaims = ['public:*' => ['channel-metadata']];
+            $this->publicChannelsClaims = ['public:*' => ['channel-metadata']];
         }
         if (array_key_exists('token_expiry', $config)) {
             $this->tokenExpiry = $config['token_expiry'];
@@ -205,7 +205,7 @@ class AblyBroadcaster extends Broadcaster
             'kid' => $this->getPublicToken(),
         ];
         // Set capabilities for public channel as per https://ably.com/docs/core-features/authentication#capability-operations
-        $channelClaims = $this->publicChannelClaims;
+        $channelClaims = $this->publicChannelsClaims;
         $serverTimeFn = function () {
             return $this->getServerTime();
         };
