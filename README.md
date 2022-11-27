@@ -134,7 +134,8 @@ npm run dev
 The current Ably broadcaster is fully compatible with the [pusher](https://laravel.com/docs/9.x/broadcasting#pusher-channels), [old Ably Broadcaster](https://laravel.com/docs/9.x/broadcasting#ably) and [pusher compatible open source broadcasters](https://laravel.com/docs/9.x/broadcasting#open-source-alternatives). Please follow below steps to migrate properly from other broadcasters.
 
 **1. Leaving the channel**
-- For **Leaving the channel** on client side, you should use [Ably Channel Namespaces](https://ably.com/docs/general/channel-rules-namespaces) conventions.
+
+For Leaving the channel on client side, you should use [Ably Channel Namespaces](https://ably.com/docs/general/channel-rules-namespaces) conventions.
 ```js
  // public channel
 Echo.channel('channel1');
@@ -146,7 +147,7 @@ Echo.leaveChannel("private:channel2")
 Echo.join('channel3'); 
 Echo.leaveChannel("presence:channel3")
 ```
-instead of [Pusher Channel Conventions](https://pusher.com/docs/channels/using_channels/channels/#channel-types)
+instead of [Pusher Channel Conventions](https://pusher.com/docs/channels/using_channels/channels/#channel-types).
 ```js
  // public channel
 Echo.channel('channel1');
@@ -160,11 +161,19 @@ Echo.leaveChannel("presence-channel3")
 ```
 
 **2. Error Handling** 
-- Ably echo client emits [ably specific errors with proper error codes](https://github.com/ably/ably-common/blob/main/protocol/errors.json) instead of [pusher error codes](https://pusher.com/docs/channels/library_auth_reference/pusher-websockets-protocol/#error-codes).
-- Aim is to make sure error details are as much descriptive as possible, so it's easy to understand and correct action can be taken. 
-- Those errors are built using [ErrorInfo object](https://ably.com/docs/api/realtime-sdk/types#error-info) with proper error context.
-- Care needs to be taken while checking on the error object and mapping needs to be done from `pusher error codes` to `ably error codes`.
+- [Ably echo client](https://github.com/ably-forks/laravel-echo) emit [ably specific error codes](https://github.com/ably/ably-common/blob/main/protocol/errors.json) instead of [pusher error codes](https://pusher.com/docs/channels/library_auth_reference/pusher-websockets-protocol/#error-codes).
+- Aim is to make sure error details are as descriptive as possible, so that it's easy to understand and corrective action can be taken ( Pusher errors lack error context, mostly emitted as integer error codes ).
+- Ably errors are provided as a [errorInfo object](https://ably.com/docs/api/realtime-sdk/types#error-info) with proper error context.
+- Care needs to be taken while checking on the errorInfo object and mapping needs to be done from [pusher error codes](https://pusher.com/docs/channels/library_auth_reference/pusher-websockets-protocol/#error-codes) to [ably error codes](https://github.com/ably/ably-common/blob/main/protocol/errors.json).
 
+```js
+    channel.error(error => {
+        if (error && error.code === 40142) { // ably token expired
+            console.error(error);
+            // take corrective action on UI
+        }
+    })
+```
 
 ## Addtional Documentation
 - Current README covers basic ably broadcaster+echo configuration for setting up laravel app and getting it running.
