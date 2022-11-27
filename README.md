@@ -131,8 +131,10 @@ npm run dev
 
 <a name="migrate-pusher-to-ably"></a>
 ## Migrating from pusher/pusher-compatible broadcasters
-- The current Ably broadcaster is fully compatible with the [pusher](https://laravel.com/docs/9.x/broadcasting#pusher-channels), [old Ably Broadcaster](https://laravel.com/docs/9.x/broadcasting#ably) and [pusher compatible open source broadcasters](https://laravel.com/docs/9.x/broadcasting#open-source-alternatives).
-- The only difference is for **Leaving the channel** on client side, you should use [Ably Channel Namespaces](https://ably.com/docs/general/channel-rules-namespaces) conventions.
+The current Ably broadcaster is fully compatible with the [pusher](https://laravel.com/docs/9.x/broadcasting#pusher-channels), [old Ably Broadcaster](https://laravel.com/docs/9.x/broadcasting#ably) and [pusher compatible open source broadcasters](https://laravel.com/docs/9.x/broadcasting#open-source-alternatives). Please follow below steps to migrate properly from other broadcasters.
+
+**1. Leaving the channel**
+- For **Leaving the channel** on client side, you should use [Ably Channel Namespaces](https://ably.com/docs/general/channel-rules-namespaces) conventions.
 ```js
  // public channel
 Echo.channel('channel1');
@@ -156,6 +158,13 @@ Echo.leaveChannel("private-channel2")
 Echo.join('channel3'); 
 Echo.leaveChannel("presence-channel3")
 ```
+
+**2. Error Handling** 
+- Ably echo client emits [ably specific errors with proper error codes](https://github.com/ably/ably-common/blob/main/protocol/errors.json) instead of [pusher error codes](https://pusher.com/docs/channels/library_auth_reference/pusher-websockets-protocol/#error-codes).
+- Aim is to make sure error details are as much descriptive as possible, so it's easy to understand and correct action can be taken. 
+- Those errors are built using [ErrorInfo object](https://ably.com/docs/api/realtime-sdk/types#error-info) with proper error context.
+- Care needs to be taken while checking on the error object and mapping needs to be done from `pusher error codes` to `ably error codes`.
+
 
 ## Addtional Documentation
 - Current README covers basic ably broadcaster+echo configuration for setting up laravel app and getting it running.
