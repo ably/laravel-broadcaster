@@ -132,9 +132,9 @@ class AblyBroadcaster extends Broadcaster
             }
             try {
                 $userChannelMetaData = parent::verifyUserCanAccessChannel($request, $normalizedChannelName);
-                if (is_array($userChannelMetaData) && array_key_exists('capability', $userChannelMetaData)) {
-                    $channelCapability = $userChannelMetaData['capability'];
-                    unset($userChannelMetaData['capability']);
+                if (is_array($userChannelMetaData) && array_key_exists('channel-capability', $userChannelMetaData)) {
+                    $channelCapability = $userChannelMetaData['channel-capability'];
+                    unset($userChannelMetaData['channel-capability']);
                 }
             } catch (\Exception $e) {
                 throw new AccessDeniedHttpException('Access denied, '.$this->stringify($channelName, $connectionId, $userId), $e);
