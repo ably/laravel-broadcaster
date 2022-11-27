@@ -112,12 +112,12 @@ npm run dev
 
   // for private channel (Access is allowed for truthy values and denied for falsy values)
   Broadcast::channel('channel1', function ($user) {
-      return ['capability' => ["subscribe", "history"]];
+      return ['channel-capability' => ["subscribe", "history"]];
   });
   
   // for presence channel
   Broadcast::channel('channel2', function ($user) {
-      return ['id' => $user->id, 'name' => $user->name, 'capability' => ["subscribe", "presence"]];
+      return ['id' => $user->id, 'name' => $user->name, 'channel-capability' => ["subscribe", "presence"]];
   });
 ```
 
