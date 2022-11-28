@@ -109,8 +109,9 @@ npm run dev
 - User channel access can be changed as per [Channel Capabilities](https://ably.com/docs/core-features/authentication#capability-operations)
 ```php
   // file - routes/channels.php
-
-  // for private channel (Access is allowed for truthy values and denied for falsy values)
+  // User authentication is allowed for private/presence channel returning truthy values and denied for falsy values.
+  
+  // for private channel
   Broadcast::channel('channel1', function ($user) {
       return ['uc-access' => ["subscribe", "history"]];
   });
