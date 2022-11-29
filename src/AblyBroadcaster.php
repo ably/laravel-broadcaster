@@ -32,7 +32,7 @@ class AblyBroadcaster extends Broadcaster
     private $tokenExpiry = 3600;
 
     /**
-     * Public channel capabilities. They are given subscribe, history and channel-metadata access
+     * Public channel capabilities. By default, all public channels are given subscribe, history and channel-metadata access.
      * Set as per https://ably.com/docs/core-features/authentication#capability-operations.
      *
      * @var array
