@@ -162,7 +162,7 @@ Echo.leaveChannel("presence-channel3")
 
 **2. Error handling**
 - [Ably echo client](https://github.com/ably-forks/laravel-echo) emit [ably specific error codes](https://github.com/ably/ably-common/blob/main/protocol/errors.json) instead of [pusher error codes](https://pusher.com/docs/channels/library_auth_reference/pusher-websockets-protocol/#error-codes).
-- Aim is to make sure error details are as descriptive as possible, so that it's easy to understand and corrective action can be taken ( Pusher errors lack error context, mostly emitted as integer error codes ).
+- Aim is to make sure error details are descriptive and easy to understand, so it's more effective to take a corrective action ( Pusher errors lack error context, mostly emitted as integer error codes ).
 - Ably errors are provided as a [errorInfo object](https://ably.com/docs/api/realtime-sdk/types#error-info) with proper error context.
 - Care needs to be taken while checking on the errorInfo object and mapping needs to be done from [pusher error codes](https://pusher.com/docs/channels/library_auth_reference/pusher-websockets-protocol/#error-codes) to [ably error codes](https://github.com/ably/ably-common/blob/main/protocol/errors.json).
 
@@ -175,7 +175,7 @@ Echo.leaveChannel("presence-channel3")
     })
 ```
 **Note :**
-- AblyPresenceChannel -> `here` method gets called everytime client **joins, updates or leaves** the channel unlike pusher client.
+- AblyPresenceChannel -> `here` method gets called everytime client **joins, updates or leaves** the channel unlike pusher client (gets called only for the first time).
 - This is perfectly in sync with interface method [**here** provided under **presence-channel.ts**](https://github.com/laravel/echo/blob/master/src/channel/presence-channel.ts#L10).
 
 ## Addtional Documentation
