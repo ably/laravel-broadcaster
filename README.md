@@ -152,16 +152,16 @@ npm run dev
 **4. Use internet time for issued token expiry. Default: false**
 - If this option is enabled, internet time in UTC format is fetched from the Ably service and cached every 6 hrs. 
 - This option is useful when using laravel-broadcaster on a server where, for some reason, the server clock cannot be kept synchronized through normal means.
-- Set `ABLY_USE_INTERNET_TIME` as **true** in **.env** file.
+- Set `ABLY_SYNC_SERVER_TIME` as **true** in **.env** file.
 ```dotenv
-    ABLY_USE_INTERNET_TIME=true
+    ABLY_SYNC_SERVER_TIME=true
 ```
 - Update ably section under `config/broadcasting.php` with
 ```php
         'ably' => [
             'driver' => 'ably',
             'key' => env('ABLY_KEY'),
-            'use_internet_time' => env('ABLY_USE_INTERNET_TIME', false)
+            'sync_server_time' => env('ABLY_SYNC_SERVER_TIME', false)
         ],
 ```
 
