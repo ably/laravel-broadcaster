@@ -122,12 +122,49 @@ npm run dev
 ```
 
 **2. Disable public channels. Default: false**
-- Update `ABLY_DISABLE_PUBLIC_CHANNELS`, set as **true** in `.env` file. 
-- Update `ably` section under `config/broadcasting.php` with `'disable_public_channels' => env('ABLY_DISABLE_PUBLIC_CHANNELS', false)`
+- Set `ABLY_DISABLE_PUBLIC_CHANNELS` as **true** in **.env** file.
+```dotenv
+    ABLY_DISABLE_PUBLIC_CHANNELS=true
+```
+- Update ably section under `config/broadcasting.php` with
+```php
+        'ably' => [
+            'driver' => 'ably',
+            'key' => env('ABLY_KEY'),
+            'disable_public_channels' => env('ABLY_DISABLE_PUBLIC_CHANNELS', false)
+        ],
+```
 
 **3. Update token expiry. Default: 3600 seconds (1 hr)**
-- Update `ABLY_TOKEN_EXPIRY` in `.env` file. 
-- Update `ably` section under `config/broadcasting.php` with `'token_expiry' => env('ABLY_TOKEN_EXPIRY', 3600)`
+- Set `ABLY_TOKEN_EXPIRY` in **.env** file.
+```dotenv
+    ABLY_TOKEN_EXPIRY=21600
+```
+- Update ably section under `config/broadcasting.php` with
+```php
+        'ably' => [
+            'driver' => 'ably',
+            'key' => env('ABLY_KEY'),
+            'token_expiry' => env('ABLY_TOKEN_EXPIRY', 3600)
+        ],
+```
+
+**4. Use internet time for issued token expiry. Default: false**
+- If this option is enabled, internet time in UTC format is fetched from the Ably service and cached every 6 hrs. 
+- This option is useful when using laravel-broadcaster on a server where, for some reason, the server clock cannot be kept synchronized through normal means.
+- Set `ABLY_SYNC_SERVER_TIME` as **true** in **.env** file.
+```dotenv
+    ABLY_SYNC_SERVER_TIME=true
+```
+- Update ably section under `config/broadcasting.php` with
+```php
+        'ably' => [
+            'driver' => 'ably',
+            'key' => env('ABLY_KEY'),
+            'sync_server_time' => env('ABLY_SYNC_SERVER_TIME', false)
+        ],
+```
+
 
 <a name="migrate-pusher-to-ably"></a>
 ## Migrating from pusher/pusher-compatible broadcasters
