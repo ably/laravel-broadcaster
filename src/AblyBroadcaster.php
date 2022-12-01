@@ -131,7 +131,7 @@ class AblyBroadcaster extends Broadcaster
             try {
                 $userChannelMetaData = parent::verifyUserCanAccessChannel($request, $normalizedChannelName);
                 if (is_array($userChannelMetaData) && array_key_exists('uc-access', $userChannelMetaData)) {
-                    $channelCapability = $userChannelMetaData['uc-access'];
+                    $guardedChannelCapability = $userChannelMetaData['uc-access'];
                     unset($userChannelMetaData['uc-access']);
                 }
             } catch (\Exception $e) {
