@@ -32,12 +32,12 @@ class AblyBroadcaster extends Broadcaster
     private $tokenExpiry = 3600;
 
     /**
-     * Default channel capabilities, all public channels are by default given subscribe, history and channel-metadata access
+     * Public channel capabilities. By default, all public channels are given subscribe, history and channel-metadata access.
      * Set as per https://ably.com/docs/core-features/authentication#capability-operations.
      *
      * @var array
      */
-    private $defaultChannelClaims = [
+    private $publicChannelsClaims = [
         'public:*' => ['subscribe', 'history', 'channel-metadata'],
     ];
 
@@ -46,7 +46,7 @@ class AblyBroadcaster extends Broadcaster
      *
      * @var int
      */
-    private $serverTimeDiff;
+    private $serverTimeDiff = 0;
 
     /**
      * Create a new broadcaster instance.
@@ -59,13 +59,14 @@ class AblyBroadcaster extends Broadcaster
     {
         $this->ably = $ably;
 
-        // Local file cache is preferred to avoid sharing serverTimeDiff across different servers
-        $this->serverTimeDiff = Cache::store('file')->remember('ably_server_time_diff', 6 * 3600, function() {
-            return time() - round($this->ably->time() / 1000);
-        });
-
+        if (array_key_exists('sync_server_time', $config) && $config['sync_server_time']) {
+            // Local file cache is preferred to avoid sharing serverTimeDiff across different servers
+            $this->serverTimeDiff = Cache::store('file')->remember('ably_server_time_diff', 6 * 3600, function() {
+                return time() - round($this->ably->time() / 1000);
+            });
+        }
         if (array_key_exists('disable_public_channels', $config) && $config['disable_public_channels']) {
-            $this->defaultChannelClaims = ['public:*' => ['channel-metadata']];
+            $this->publicChannelsClaims = ['public:*' => ['channel-metadata']];
         }
         if (array_key_exists('token_expiry', $config)) {
             $this->tokenExpiry = $config['token_expiry'];
@@ -77,11 +78,7 @@ class AblyBroadcaster extends Broadcaster
      */
     private function getServerTime()
     {
-        if ($this->serverTimeDiff != null) {
-            return time() - $this->serverTimeDiff;
-        }
-
-        return time();
+        return time() - $this->serverTimeDiff;
     }
 
     /**
@@ -117,9 +114,10 @@ class AblyBroadcaster extends Broadcaster
         $channelName = $request->channel_name;
         $token = $request->token;
         $connectionId = $request->socket_id;
-        $normalizedChannelName = $this->normalizeChannelName($channelName);
         $userId = null;
-        $channelCapability = ['*'];
+        $guardedChannelCapability = ['*']; // guardedChannel is either private or presence channel
+
+        $normalizedChannelName = $this->normalizeChannelName($channelName);
         $user = $this->retrieveUser($request, $normalizedChannelName);
         if ($user) {
             $userId = method_exists($user, 'getAuthIdentifierForBroadcasting')
@@ -142,7 +140,7 @@ class AblyBroadcaster extends Broadcaster
         }
 
         try {
-            $signedToken = $this->getSignedToken($channelName, $token, $userId, $channelCapability);
+            $signedToken = $this->getSignedToken($channelName, $token, $userId, $guardedChannelCapability);
         } catch (\Exception $_) { // excluding exception to avoid exposing private key
             throw new AccessDeniedHttpException('malformed token, '.$this->stringify($channelName, $connectionId, $userId));
         }
@@ -196,10 +194,10 @@ class AblyBroadcaster extends Broadcaster
      * @param  string  $channelName
      * @param  string  $token
      * @param  string  $clientId
-     * @param  string[]  $channelCapability
+     * @param  string[]  $guardedChannelCapability
      * @return string
      */
-    public function getSignedToken($channelName, $token, $clientId, $channelCapability = ['*'])
+    public function getSignedToken($channelName, $token, $clientId, $guardedChannelCapability)
     {
         $header = [
             'typ' => 'JWT',
@@ -207,7 +205,7 @@ class AblyBroadcaster extends Broadcaster
             'kid' => $this->getPublicToken(),
         ];
         // Set capabilities for public channel as per https://ably.com/docs/core-features/authentication#capability-operations
-        $channelClaims = $this->defaultChannelClaims;
+        $channelClaims = $this->publicChannelsClaims;
         $serverTimeFn = function () {
             return $this->getServerTime();
         };
@@ -220,8 +218,8 @@ class AblyBroadcaster extends Broadcaster
             $iat = $serverTimeFn();
             $exp = $iat + $this->tokenExpiry;
         }
-        if ($channelName) {
-            $channelClaims[$channelName] = $channelCapability;
+        if ($channelName && $this->isGuardedChannel($channelName)) {
+            $channelClaims[$channelName] = $guardedChannelCapability;
         }
         $claims = [
             'iat' => $iat,
