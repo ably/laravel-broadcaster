@@ -257,7 +257,7 @@ class AblyBroadcasterTest extends TestCase
 
         $this->broadcaster->shouldReceive('validAuthenticationResponse')
                           ->times(1)
-                          ->andReturn(['userid' => 'user1234', 'info' => 'Hello there', 'uc-access' => ['publish', 'subscribe', 'presence']]);
+                          ->andReturn(['userid' => 'user1234', 'info' => 'Hello there', 'ably-capability' => ['publish', 'subscribe', 'presence']]);
 
         $response = $this->broadcaster->auth(
             $this->getMockRequestWithUserForChannel('private:test1', null)

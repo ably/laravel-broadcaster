@@ -106,19 +106,19 @@ npm run dev
 ## Configure advanced features
 
 **1. Modify private/presence channel capability. Default: Full capability**
-- User channel access (uc-access) can be changed as per [Channel Capabilities](https://ably.com/docs/core-features/authentication#capability-operations)
+- User channel access (ably-capability) can be changed as per [Channel Capabilities](https://ably.com/docs/core-features/authentication#capability-operations)
 ```php
   // file - routes/channels.php
   // User authentication is allowed for private/presence channel returning truthy values and denied for falsy values.
   
   // for private channel
   Broadcast::channel('channel1', function ($user) {
-      return ['uc-access' => ["subscribe", "history"]];
+      return ['ably-capability' => ["subscribe", "history"]];
   });
   
   // for presence channel
   Broadcast::channel('channel2', function ($user) {
-      return ['id' => $user->id, 'name' => $user->name, 'uc-access' => ["subscribe", "presence"]];
+      return ['id' => $user->id, 'name' => $user->name, 'ably-capability' => ["subscribe", "presence"]];
   });
 ```
 
