@@ -106,7 +106,8 @@ npm run dev
 ## Configure advanced features
 
 **1. Modify private/presence channel capability. Default: Full capability**
-- User channel access (ably-capability) can be changed as per [Channel Capabilities](https://ably.com/docs/core-features/authentication#capability-operations)
+- Channel access control rights are granted for each individual user separately using `ably-capability`. It defines list of access claims as per [Channel Capabilities](https://ably.com/docs/core-features/authentication#capability-operations).
+
 ```php
   // file - routes/channels.php
   // User authentication is allowed for private/presence channel returning truthy values and denied for falsy values.
