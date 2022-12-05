@@ -131,11 +131,12 @@ npm run dev
 
 <a name="migrate-pusher-to-ably"></a>
 ## Migrating from pusher/pusher-compatible broadcasters
-The current Ably broadcaster is fully compatible with the [pusher](https://laravel.com/docs/9.x/broadcasting#pusher-channels), [old Ably Broadcaster](https://laravel.com/docs/9.x/broadcasting#ably) and [pusher compatible open source broadcasters](https://laravel.com/docs/9.x/broadcasting#open-source-alternatives). Please follow below steps to migrate properly from other broadcasters.
+The Ably Laravel broadcaster is designed to be compatible with all Laravel broadcasting providers, such as [Pusher](https://laravel.com/docs/9.x/broadcasting#pusher-channels), [Ably with the Pusher adapter](https://laravel.com/docs/9.x/broadcasting#ably), and all [Pusher compatible open source broadcasters](https://laravel.com/docs/9.x/broadcasting#open-source-alternatives). Follow the below steps to migrate from other broadcasters.
 
 **1. Leaving the channel**
 
-For Leaving the channel on client side, you should use [Ably Channel Namespaces](https://ably.com/docs/general/channel-rules-namespaces) conventions.
+To leave channel on the client side, use [Ably Channel Namespaces](https://ably.com/docs/general/channel-rules-namespaces) conventions =>
+
 ```js
  // public channel
 Echo.channel('channel1');
@@ -147,7 +148,8 @@ Echo.leaveChannel("private:channel2")
 Echo.join('channel3'); 
 Echo.leaveChannel("presence:channel3")
 ```
-instead of [Pusher Channel Conventions](https://pusher.com/docs/channels/using_channels/channels/#channel-types).
+instead of [Pusher Channel Conventions](https://pusher.com/docs/channels/using_channels/channels/#channel-types) =>
+
 ```js
  // public channel
 Echo.channel('channel1');
