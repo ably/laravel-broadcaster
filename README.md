@@ -133,7 +133,7 @@ npm run dev
 ## Migrating from pusher/pusher-compatible broadcasters
 The Ably Laravel broadcaster is designed to be compatible with all Laravel broadcasting providers, such as [Pusher](https://laravel.com/docs/9.x/broadcasting#pusher-channels), [Ably with the Pusher adapter](https://laravel.com/docs/9.x/broadcasting#ably), and all [Pusher compatible open source broadcasters](https://laravel.com/docs/9.x/broadcasting#open-source-alternatives). Follow the below steps to migrate from other broadcasters.
 
-**1. Leaving the channel**
+**1. Leaving a channel**
 
 To leave channel on the client side, use [Ably Channel Namespaces](https://ably.com/docs/general/channel-rules-namespaces) conventions =>
 
@@ -163,10 +163,11 @@ Echo.leaveChannel("presence-channel3")
 ```
 
 **2. Error handling**
-- [Ably echo client](https://github.com/ably-forks/laravel-echo) emit [ably specific error codes](https://github.com/ably/ably-common/blob/main/protocol/errors.json) instead of [pusher error codes](https://pusher.com/docs/channels/library_auth_reference/pusher-websockets-protocol/#error-codes).
+- Please note that the [Ably laravel-echo client](https://github.com/ably-forks/laravel-echo) emits [Ably specific error codes](https://github.com/ably/ably-common/blob/main/protocol/errors.json) instead of [Pusher error codes](https://pusher.com/docs/channels/library_auth_reference/pusher-websockets-protocol/#error-codes).
 - Aim is to make sure error details are descriptive and easy to understand, so it's more effective to take a corrective action ( Pusher errors lack error context, mostly emitted as integer error codes ).
-- Ably errors are provided as a [errorInfo object](https://ably.com/docs/api/realtime-sdk/types#error-info) with proper error context.
-- Care needs to be taken while checking on the errorInfo object and mapping needs to be done from [pusher error codes](https://pusher.com/docs/channels/library_auth_reference/pusher-websockets-protocol/#error-codes) to [ably error codes](https://github.com/ably/ably-common/blob/main/protocol/errors.json).
+- Ably errors are provided as an [ErrorInfo object](https://ably.com/docs/api/realtime-sdk/types#error-info) with full error context.
+- If you are interacting with pusher errors in your project, be sure to update your code accordingly.
+i.e. update from [pusher error codes](https://pusher.com/docs/channels/library_auth_reference/pusher-websockets-protocol/#error-codes) to [ably error codes](https://github.com/ably/ably-common/blob/main/protocol/errors.json).
 
 ```js
     channel.error(error => {
