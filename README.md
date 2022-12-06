@@ -135,36 +135,34 @@ The Ably Laravel broadcaster is designed to be compatible with all Laravel broad
 
 **1. Leaving a channel**
 
-To leave channel on the client side, use [Ably Channel Namespaces](https://ably.com/docs/general/channel-rules-namespaces) conventions =>
+To leave channel on the client side, use [Ably Channel Namespaces](https://ably.com/docs/general/channel-rules-namespaces) conventions, instead of [Pusher Channel Conventions](https://pusher.com/docs/channels/using_channels/channels/#channel-types).
 
 ```js
  // public channel
-Echo.channel('channel1');
-Echo.leaveChannel("public:channel1");
-// private channel
-Echo.private('channel2'); 
-Echo.leaveChannel("private:channel2")
-// presence channel
-Echo.join('channel3'); 
-Echo.leaveChannel("presence:channel3")
-```
-instead of [Pusher Channel Conventions](https://pusher.com/docs/channels/using_channels/channels/#channel-types) =>
+Echo.channel('channel1'); // subscribe to a public channel
+// use this 
+Echo.leaveChannel("public:channel1"); // ably convention for leaving public channel
+// instead of 
+Echo.leaveChannel("channel1"); // pusher convention for leaving public channel
 
-```js
- // public channel
-Echo.channel('channel1');
-Echo.leaveChannel("channel1");
 // private channel
-Echo.private('channel2'); 
-Echo.leaveChannel("private-channel2")
+Echo.private('channel2'); // subscribe to a private channel
+// use this 
+Echo.leaveChannel("private:channel2"); // ably convention for leaving private channel
+// instead of 
+Echo.leaveChannel("private-channel2"); // pusher convention for leaving private channel
+
 // presence channel
-Echo.join('channel3'); 
-Echo.leaveChannel("presence-channel3")
+Echo.join('channel3');  // subscribe to a presence channel
+// use this
+Echo.leaveChannel("presence:channel3"); // ably convention for leaving presence channel
+// instead of 
+Echo.leaveChannel("presence-channel3"); // pusher convention for leaving presence channel
 ```
 
 **2. Error handling**
 - Please note that the [Ably laravel-echo client](https://github.com/ably-forks/laravel-echo) emits [Ably specific error codes](https://github.com/ably/ably-common/blob/main/protocol/errors.json) instead of [Pusher error codes](https://pusher.com/docs/channels/library_auth_reference/pusher-websockets-protocol/#error-codes).
-- Ably emitted errors are descriptive and easy to understand, so it's more effective to take a corrective action ( Pusher errors mostly emitted as integer error codes ).
+- Ably emitted errors are descriptive and easy to understand, so it's more effective to take a corrective action.
 - Ably errors are provided as an [ErrorInfo object](https://ably.com/docs/api/realtime-sdk/types#error-info) with full error context.
 - If you are interacting with pusher errors in your project, be sure to update your code accordingly.
 i.e. update from [pusher error codes](https://pusher.com/docs/channels/library_auth_reference/pusher-websockets-protocol/#error-codes) to [ably error codes](https://github.com/ably/ably-common/blob/main/protocol/errors.json).
@@ -178,8 +176,8 @@ i.e. update from [pusher error codes](https://pusher.com/docs/channels/library_a
     })
 ```
 **Note :**
-- AblyPresenceChannel -> `here` method gets called everytime client **joins, updates or leaves** the channel unlike pusher client (gets called only for the first time).
-- This is perfectly in sync with interface method [**here** provided under **presence-channel.ts**](https://github.com/laravel/echo/blob/master/src/channel/presence-channel.ts#L10).
+- AblyPresenceChannel -> `here` method gets called every time a client **joins, updates or leaves** the channel, whereas when using Pusher this is only called once for first client entering the channel.
+- This behaviour follows implementation as per standard [PresenceChannel Interface](https://github.com/laravel/echo/blob/master/src/channel/presence-channel.ts#L10).
 
 ## Addtional Documentation
 - Current README covers basic ably broadcaster+echo configuration for setting up laravel app and getting it running.
