@@ -130,7 +130,10 @@ class AblyBroadcaster extends Broadcaster
             }
             try {
                 $userChannelMetaData = parent::verifyUserCanAccessChannel($request, $normalizedChannelName);
-                if (is_array($userChannelMetaData) && array_key_exists('capability', $userChannelMetaData)) {
+                if (is_array($userChannelMetaData) && array_key_exists('ably-capability', $userChannelMetaData)) {
+                    $guardedChannelCapability = $userChannelMetaData['ably-capability'];
+                    unset($userChannelMetaData['ably-capability']);
+                } else if (is_array($userChannelMetaData) && array_key_exists('capability', $userChannelMetaData)) { // deprecated, will be removed in future versions
                     $guardedChannelCapability = $userChannelMetaData['capability'];
                     unset($userChannelMetaData['capability']);
                 }
