@@ -1,5 +1,21 @@
 # Changelog
 
+## [v1.0.2](https://github.com/ably/laravel-broadcaster/tree/1.0.2)
+
+[Full Changelog](https://github.com/ably/laravel-broadcaster/compare/v1.0.1...v1.0.2)
+
+**Implemented enhancements:**
+
+- Improve response time for token-signing [\#15](https://github.com/ably/laravel-broadcaster/pull/15) ([qsdstefan](https://github.com/qsdstefan))
+- Add `ABLY_SYNC_SERVER_TIME` time option [\#19](https://github.com/ably/laravel-broadcaster/pull/19) ([sacOO7](https://github.com/sacOO7))
+
+**Merged pull requests:**
+
+- Refactor capability key for a channel [\#21](https://github.com/ably/laravel-broadcaster/pull/21) ([sacOO7](https://github.com/sacOO7))
+- Update migration doc [\#20](https://github.com/ably/laravel-broadcaster/pull/20) ([sacOO7](https://github.com/sacOO7))
+- Remove "socket" key from message data [\#18](https://github.com/ably/laravel-broadcaster/pull/18) ([kwhohasamullet](https://github.com/kwhohasamullet))
+
+
 ## [v1.0.1](https://github.com/ably/laravel-broadcaster/tree/1.0.1)
 
 [Full Changelog](https://github.com/ably/laravel-broadcaster/compare/v1.0.0...v1.0.1)
