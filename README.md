@@ -91,10 +91,9 @@ You can set additional ably-js [clientOptions](https://ably.com/docs/api/realtim
 
 ```
     broadcaster: 'ably',
-    authEndpoint: 'http://www.localhost:8000/broadcasting/auth', // absolute or relative url to laravel-server 
-    realtimeHost: 'realtime.ably.com',
-    restHost: 'rest.ably.com',
+    authEndpoint: 'http://www.localhost:8000/broadcasting/auth', // absolute or relative url to laravel-server
     port: '80',
+    environment : 'custom-environment', // https://ably.com/docs/platform-customization#setting-up-a-custom-environment
     echoMessages: true // By default self-echo for published message is false
 ```
 Once you have uncommented and adjusted the Echo configuration according to your needs, you may compile your application's assets:
