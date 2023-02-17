@@ -1,5 +1,20 @@
 # Changelog
 
+
+## [v1.0.3](https://github.com/ably/laravel-broadcaster/tree/v1.0.3)
+
+[Full Changelog](https://github.com/ably/laravel-broadcaster/compare/v1.0.2...v1.0.3)
+
+**Closed issues:**
+
+- Laravel 10 compatibility  [\#24](https://github.com/ably/laravel-broadcaster/issues/24)
+
+**Merged pull requests:**
+
+- PHP 8.2 Support [\#26](https://github.com/ably/laravel-broadcaster/pull/26) ([AndyTWF](https://github.com/AndyTWF))
+- Add Laravel 10 support [\#25](https://github.com/ably/laravel-broadcaster/pull/25) ([koossaayy](https://github.com/koossaayy))
+- Fix readme clientOptions [\#23](https://github.com/ably/laravel-broadcaster/pull/23) ([sacOO7](https://github.com/sacOO7))
+
 ## [v1.0.2](https://github.com/ably/laravel-broadcaster/tree/1.0.2)
 
 [Full Changelog](https://github.com/ably/laravel-broadcaster/compare/v1.0.1...v1.0.2)
