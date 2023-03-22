@@ -86,16 +86,24 @@ window.Echo.connector.ably.connection.on(stateChange => {
         console.log('connected to ably server');
     }
 });
+
 ```
-You can set additional ably-js [clientOptions](https://ably.com/docs/api/realtime-sdk?lang=javascript#client-options) when creating an `Echo` instance.
+- Take a look at [laravel broadcasting auth-endpoint doc](https://laravel.com/docs/broadcasting#customizing-the-authorization-endpoint) for customizing authEndpoint.
+```
+    broadcaster: 'ably',
+    authEndpoint: '/broadcasting/auth' // relative or absolute url to laravel-server
+```
+
+- You can set additional ably-js [clientOptions](https://ably.com/docs/api/realtime-sdk?lang=javascript#client-options) when creating an `Echo` instance.
+- [Auth specific clientOptions](https://sdk.ably.com/builds/ably/specification/main/features/#AO1) should not be used, since laravel `authEndpoint` is already responsible for token authentication and external auth mechanism is not needed.
 
 ```
     broadcaster: 'ably',
-    authEndpoint: 'http://www.localhost:8000/broadcasting/auth', // absolute or relative url to laravel-server
-    port: '80',
-    environment : 'custom-environment', // https://ably.com/docs/platform-customization#setting-up-a-custom-environment
-    echoMessages: true // By default self-echo for published message is false
+    echoMessages: true, // self-echo for published message is set to false internally.
+    queueMessages: true, // default: true, maintains queue for messages to be sent.
+    disconnectedRetryTimeout: 15000, // Retry connect after 15 seconds when client gets disconnected
 ```
+
 Once you have uncommented and adjusted the Echo configuration according to your needs, you may compile your application's assets:
 
 ```shell
