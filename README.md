@@ -88,21 +88,7 @@ window.Echo.connector.ably.connection.on(stateChange => {
 });
 
 ```
-- Take a look at [laravel broadcasting auth-endpoint doc](https://laravel.com/docs/broadcasting#customizing-the-authorization-endpoint) for customizing authEndpoint.
-```
-    broadcaster: 'ably',
-    authEndpoint: '/broadcasting/auth' // relative or absolute url to laravel-server
-```
-
-- You can set additional ably-js [clientOptions](https://ably.com/docs/api/realtime-sdk?lang=javascript#client-options) when creating an `Echo` instance.
-- [Auth specific clientOptions](https://sdk.ably.com/builds/ably/specification/main/features/#AO1) should not be used, since laravel `authEndpoint` is already responsible for token authentication and external auth mechanism is not needed.
-
-```
-    broadcaster: 'ably',
-    echoMessages: true, // self-echo for published message is set to false internally.
-    queueMessages: true, // default: true, maintains queue for messages to be sent.
-    disconnectedRetryTimeout: 15000, // Retry connect after 15 seconds when client gets disconnected
-```
+ Please take a look at [**Ably Laravel Echo Doc**](https://github.com/ably-forks/laravel-echo) for configuring ably-specific clientOptions and implementing extra features.
 
 Once you have uncommented and adjusted the Echo configuration according to your needs, you may compile your application's assets:
 
