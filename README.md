@@ -88,7 +88,7 @@ window.Echo.connector.ably.connection.on(stateChange => {
 });
 
 ```
- Please take a look at [**Ably Laravel Echo Doc**](https://github.com/ably-forks/laravel-echo) for configuring ably-specific clientOptions and implementing extra features.
+ Please take a look at [**Ably Laravel Echo Doc**](https://github.com/ably-forks/laravel-echo#readme) for more information related to configuring ably-specific clientOptions and implementing extra features.
 
 Once you have uncommented and adjusted the Echo configuration according to your needs, you may compile your application's assets:
 
