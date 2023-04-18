@@ -208,8 +208,8 @@ i.e. update from [pusher error codes](https://pusher.com/docs/channels/library_a
     })
 ```
 **Note :**
-- AblyPresenceChannel -> `here` method gets called every time a client **joins, updates or leaves** the channel, whereas when using Pusher this is only called once for first client entering the channel.
-- This behaviour follows implementation as per standard [PresenceChannel Interface](https://github.com/laravel/echo/blob/master/src/channel/presence-channel.ts#L10).
+- In `Echo.join().here(members => {})` implementation, members are updated every time a client **joins, updates or leaves** the channel, whereas when using Pusher this is only called once for first client entering the channel.
+- Ably follows this behaviour as per standard [PresenceChannel Interface](https://github.com/laravel/echo/blob/master/src/channel/presence-channel.ts#L10).
 
 ## Addtional Documentation
 - Current README covers basic ably broadcaster+echo configuration for setting up laravel app and getting it running.
