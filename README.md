@@ -88,7 +88,7 @@ window.Echo.connector.ably.connection.on(stateChange => {
 });
 
 ```
- Please take a look at [**Ably Laravel Echo Doc**](https://github.com/ably-forks/laravel-echo#readme) for more information related to configuring ably-specific clientOptions and implementing extra features.
+Please take a look at the [**Ably Laravel Echo Docs**](https://github.com/ably-forks/laravel-echo#readme) for more information related to configuring ably-specific client options and implementing additional features.
 
 Once you have uncommented and adjusted the Echo configuration according to your needs, you may compile your application's assets:
 
@@ -208,8 +208,8 @@ i.e. update from [pusher error codes](https://pusher.com/docs/channels/library_a
     })
 ```
 **Note :**
-- In `Echo.join().here(members => {})` implementation, members are updated every time a client **joins, updates or leaves** the channel, whereas when using Pusher this is only called once for first client entering the channel.
-- Ably follows this behaviour as per standard [PresenceChannel Interface](https://github.com/laravel/echo/blob/master/src/channel/presence-channel.ts#L10).
+- In the `Echo.join().here(members => {})` implementation, members are updated every time a client **joins, updates or leaves** the channel, whereas when using Pusher this is only called once for first client entering the channel.
+- Ably behaviour follows the standard Echo [PresenceChannel Interface `here` Method](https://github.com/laravel/echo/blob/master/src/channel/presence-channel.ts#L10).
 
 ## Addtional Documentation
 - Current README covers basic ably broadcaster+echo configuration for setting up laravel app and getting it running.
