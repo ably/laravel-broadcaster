@@ -88,21 +88,7 @@ window.Echo.connector.ably.connection.on(stateChange => {
 });
 
 ```
-- Take a look at [laravel broadcasting auth-endpoint doc](https://laravel.com/docs/broadcasting#customizing-the-authorization-endpoint) for customizing authEndpoint.
-```
-    broadcaster: 'ably',
-    authEndpoint: '/broadcasting/auth' // relative or absolute url to laravel-server
-```
-
-- You can set additional ably-js [clientOptions](https://ably.com/docs/api/realtime-sdk?lang=javascript#client-options) when creating an `Echo` instance.
-- [Auth specific clientOptions](https://sdk.ably.com/builds/ably/specification/main/features/#AO1) should not be used, since laravel `authEndpoint` is already responsible for token authentication and external auth mechanism is not needed.
-
-```
-    broadcaster: 'ably',
-    echoMessages: true, // self-echo for published message is set to false internally.
-    queueMessages: true, // default: true, maintains queue for messages to be sent.
-    disconnectedRetryTimeout: 15000, // Retry connect after 15 seconds when client gets disconnected
-```
+Please take a look at the [**Ably Laravel Echo Docs**](https://github.com/ably-forks/laravel-echo#readme) for more information related to configuring ably-specific client options and implementing additional features.
 
 Once you have uncommented and adjusted the Echo configuration according to your needs, you may compile your application's assets:
 
@@ -222,8 +208,8 @@ i.e. update from [pusher error codes](https://pusher.com/docs/channels/library_a
     })
 ```
 **Note :**
-- AblyPresenceChannel -> `here` method gets called every time a client **joins, updates or leaves** the channel, whereas when using Pusher this is only called once for first client entering the channel.
-- This behaviour follows implementation as per standard [PresenceChannel Interface](https://github.com/laravel/echo/blob/master/src/channel/presence-channel.ts#L10).
+- In the `Echo.join().here(members => {})` implementation, members are updated every time a client **joins, updates or leaves** the channel, whereas when using Pusher this is only called once for first client entering the channel.
+- Ably behaviour follows the standard Echo [PresenceChannel Interface `here` Method](https://github.com/laravel/echo/blob/master/src/channel/presence-channel.ts#L10).
 
 ## Addtional Documentation
 - Current README covers basic ably broadcaster+echo configuration for setting up laravel app and getting it running.
