@@ -15,6 +15,8 @@ class LaravelAblyBroadcasterServiceProvider extends ServiceProvider
     {
         Broadcast::extend('ably', function ($broadcasting, $config) {
             AblyRest::setAblyAgentHeader('laravel-broadcaster', AblyBroadcaster::LIB_VERSION);
+            $laravelVersion = Miscellaneous::getNumeric(app()->version());
+            AblyRest::setAblyAgentHeader('laravel', $laravelVersion);
             return new AblyBroadcaster(new AblyRest($config), $config);
         });
     }
