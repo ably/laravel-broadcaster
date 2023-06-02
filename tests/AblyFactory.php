@@ -3,6 +3,7 @@ namespace Ably\LaravelBroadcaster\Tests;
 
 use Ably\AblyRest;
 use Ably\LaravelBroadcaster\AblyBroadcaster;
+use Ably\Utils\Miscellaneous;
 
 /**
  * Instantiates AblyRest objects
