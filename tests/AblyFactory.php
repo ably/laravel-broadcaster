@@ -32,6 +32,8 @@ class AblyFactory
     protected function createInstance($clientOptions)
     {
         AblyRest::setAblyAgentHeader('laravel-broadcaster', AblyBroadcaster::LIB_VERSION);
+        $laravelVersion = Miscellaneous::getNumeric(app()->version());
+        AblyRest::setAblyAgentHeader('laravel', $laravelVersion);
         return new AblyRest($clientOptions);
     }
 }
