@@ -336,8 +336,9 @@ class AblyBroadcasterTest extends TestCase
             'httpClass' => 'Ably\LaravelBroadcaster\Tests\HttpMock',
         ]);
         $ably->time();
-        $expectedLaravelHeader = 'ably-php/'.\Ably\Defaults::LIB_VERSION.' '.'php/'.Miscellaneous::getNumeric(phpversion()).' laravel-broadcaster/'. AblyBroadcaster::LIB_VERSION;
-        $this->assertcontains( 'Ably-Agent: '.$expectedLaravelHeader, $ably->http->lastHeaders, 'Expected Laravel broadcaster header in HTTP request' );
+        $laravelVersion = Miscellaneous::getNumeric(app()->version());
+        $expectedLaravelHeader = 'ably-php/'.\Ably\Defaults::LIB_VERSION.' '.'php/'.Miscellaneous::getNumeric(phpversion()).' laravel-broadcaster/'.AblyBroadcaster::LIB_VERSION.' laravel/'.$laravelVersion;
+        $this->assertcontains( 'Ably-Agent: '.$expectedLaravelHeader, $ably->http->lastHeaders, 'Expected Laravel broadcaster header in HTTP request '.json_encode($ably->http->lastHeaders));
     }
 
     public function testPayloadShouldNotIncludeSocketKey()

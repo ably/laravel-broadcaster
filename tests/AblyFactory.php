@@ -3,6 +3,7 @@ namespace Ably\LaravelBroadcaster\Tests;
 
 use Ably\AblyRest;
 use Ably\LaravelBroadcaster\AblyBroadcaster;
+use Ably\Utils\Miscellaneous;
 
 /**
  * Instantiates AblyRest objects
@@ -32,6 +33,8 @@ class AblyFactory
     protected function createInstance($clientOptions)
     {
         AblyRest::setAblyAgentHeader('laravel-broadcaster', AblyBroadcaster::LIB_VERSION);
+        $laravelVersion = Miscellaneous::getNumeric(app()->version());
+        AblyRest::setAblyAgentHeader('laravel', $laravelVersion);
         return new AblyRest($clientOptions);
     }
 }
