@@ -1,5 +1,20 @@
 # Changelog
 
+## [v1.0.4](https://github.com/ably/laravel-broadcaster/tree/v1.0.4)
+
+[Full Changelog](https://github.com/ably/laravel-broadcaster/compare/v1.0.3...v1.0.4)
+
+**Closed issues:**
+
+- Add missing agent header for laravel version [\#32](https://github.com/ably/laravel-broadcaster/issues/32)
+- Need Laravel 10 support [\#29](https://github.com/ably/laravel-broadcaster/issues/29)
+
+**Merged pull requests:**
+
+- Removed non-documented capability key check  [\#34](https://github.com/ably/laravel-broadcaster/pull/34) ([sacOO7](https://github.com/sacOO7))
+- Added laravel agent header  [\#33](https://github.com/ably/laravel-broadcaster/pull/33) ([sacOO7](https://github.com/sacOO7))
+- Update laravel echo doc [\#31](https://github.com/ably/laravel-broadcaster/pull/31) ([sacOO7](https://github.com/sacOO7))
+- Update README ably clientOptions [\#30](https://github.com/ably/laravel-broadcaster/pull/30) ([sacOO7](https://github.com/sacOO7))
 
 ## [v1.0.3](https://github.com/ably/laravel-broadcaster/tree/v1.0.3)
 
