@@ -247,9 +247,13 @@ Please see [CHANGELOG](CHANGELOG.md) for more information what has changed recen
 ## Release Process
 This library uses [semantic versioning](http://semver.org/). For each release, the following needs to be done:
 
-1. Create a new branch for the release, named like `release/1.2.4` (where `1.2.4` is what you're releasing, being the new version)
-2. Update the lib version in `src/AblyBroadcaster.php`
-3. Run [`github_changelog_generator`](https://github.com/skywinder/Github-Changelog-Generator) to automate the update of the [CHANGELOG](./CHANGELOG.md). Once the `CHANGELOG` update has completed, manually change the `Unreleased` heading and link with the current version number such as `1.2.4`. Also ensure that the `Full Changelog` link points to the new version tag instead of the `HEAD`.
+1. Create a new branch for the release, named like `release/1.2.4` (where `1.2.4` is what you're releasing, being the new version).
+2. Update the lib version in `src/AblyBroadcaster.php`.
+3. Run [`github_changelog_generator`](https://github.com/github-changelog-generator/github-changelog-generator) to automate the update of the [CHANGELOG.md](CHANGELOG.md). This may require some manual intervention, both in terms of how the command is run and how the change log file is modified. Your mileage may vary:
+  - The command you will need to run will look something like this: `github_changelog_generator -u ably -p laravel-broadcaster --since-tag v1.2.4 --output delta.md --token $GITHUB_TOKEN_WITH_REPO_ACCESS`. Generate token [here](https://github.com/settings/tokens/new?description=GitHub%20Changelog%20Generator%20token).
+  - Using the command above, `--output delta.md` writes changes made after `--since-tag` to a new file.
+  - The contents of that new file (`delta.md`) then need to be manually inserted at the top of the `CHANGELOG.md`, changing the "Unreleased" heading and linking with the current version numbers.
+  - Also ensure that the "Full Changelog" link points to the new version tag instead of the `HEAD`.
 4. Commit generated [CHANGELOG.md](./CHANGELOG.md) file.
 5. Make a PR against `main`.
 6. Once the PR is approved, merge it into `main`.
