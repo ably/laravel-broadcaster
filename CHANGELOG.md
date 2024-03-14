@@ -1,5 +1,19 @@
 # Changelog
 
+## [v1.0.5](https://github.com/ably/laravel-broadcaster/tree/v1.0.5)
+
+[Full Changelog](https://github.com/ably/laravel-broadcaster/compare/v1.0.4...v1.0.5)
+
+**Closed issues:**
+
+- Update Ably Laravel Broadcaster to support Laravel 11 [\#42](https://github.com/ably/laravel-broadcaster/issues/42)
+- Update README to use ably-js version \< 2.0 [\#40](https://github.com/ably/laravel-broadcaster/issues/40)
+
+**Merged pull requests:**
+
+- Support laravel 11 [\#43](https://github.com/ably/laravel-broadcaster/pull/43) ([sacOO7](https://github.com/sacOO7))
+- Fix readme laravel echo [\#41](https://github.com/ably/laravel-broadcaster/pull/41) ([sacOO7](https://github.com/sacOO7))
+
 ## [v1.0.4](https://github.com/ably/laravel-broadcaster/tree/v1.0.4)
 
 [Full Changelog](https://github.com/ably/laravel-broadcaster/compare/v1.0.3...v1.0.4)
