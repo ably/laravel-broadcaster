@@ -34,23 +34,18 @@ composer require ably/laravel-broadcaster
 
 ## Setup
 
-1. Update `.env` file, set `BROADCAST_DRIVER` as `ably` and specify `ABLY_KEY`.
+1. Update `.env` file, set `BROADCAST_CONNECTION` as `ably` and specify `ABLY_KEY`.
 ```dotenv
-BROADCAST_DRIVER=ably
+BROADCAST_CONNECTION=ably # For laravel <= 10, set `BROADCAST_DRIVER` instead
 ABLY_KEY=ROOT_API_KEY_COPIED_FROM_ABLY_WEB_DASHBOARD
 ```
 > **Warning** - Do not expose **ABLY_KEY** to client code.
 
-2. Uncomment `BroadcastServiceProvider` in `config/app.php`
+2. If using laravel 10 or older, uncomment/set [**BroadcastServiceProvider** in config/app.php](https://github.com/ably-labs/laravel-broadcast-app/blob/3ae9b9b97e05c1394bf128ae4dd905e245c7db71/config/app.php#L174)
 <pre>
-        /*
-         * Application Service Providers...
-         */
-        App\Providers\AppServiceProvider::class,
         App\Providers\AuthServiceProvider::class,
         <b>App\Providers\BroadcastServiceProvider::class,</b>
         App\Providers\EventServiceProvider::class,
-        App\Providers\RouteServiceProvider::class,
 </pre>
 
 4. If running Laravel 8 or older, edit `config/broadcasting.php`, add `ably` section to the `connections` array
@@ -60,6 +55,7 @@ ABLY_KEY=ROOT_API_KEY_COPIED_FROM_ABLY_WEB_DASHBOARD
             'key' => env('ABLY_KEY')
         ],
 ```
+- Please take a look at [server-side broadcasting config](https://laravel.com/docs/broadcasting#configuration) for more information.
 
 Finally, you are ready to install and configure [Ably Laravel Echo](https://github.com/ably-forks/echo/), which will receive the broadcast events on the client-side.
 
