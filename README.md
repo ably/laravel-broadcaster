@@ -55,7 +55,7 @@ ABLY_KEY=ROOT_API_KEY_COPIED_FROM_ABLY_WEB_DASHBOARD
             'key' => env('ABLY_KEY')
         ],
 ```
-- Please take a look at [server-side broadcasting config](https://laravel.com/docs/broadcasting#configuration) for more information.
+- For more information, refer to the [server-side broadcasting configuration documentation](https://laravel.com/docs/broadcasting#configuration).
 
 Finally, you are ready to install and configure [Ably Laravel Echo](https://github.com/ably-forks/echo/), which will receive the broadcast events on the client-side.
 
