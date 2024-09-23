@@ -2,6 +2,8 @@
 
 namespace Ably\LaravelBroadcaster;
 
+use Illuminate\Broadcasting\BroadcastException;
+
 class Utils
 {
     // JWT related PHP utility functions
@@ -61,5 +63,17 @@ class Utils
     public static function base64urlEncode($str)
     {
         return rtrim(strtr(base64_encode($str), '+/', '-_'), '=');
+    }
+
+    public static function decodeSocketId($socketId) {
+        if ($socketId) {
+            return json_decode(base64_decode($socketId), true);
+        }
+        return null;
+    }
+
+    public static function missingKeyErrorForSocketId($keyName) {
+        return $keyName." not present in socketId, please make sure to send base64 encoded json with "
+                ."connectionKey and clientId as keys. clientId is null if connection is not identified.";
     }
 }
