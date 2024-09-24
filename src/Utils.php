@@ -3,7 +3,6 @@
 namespace Ably\LaravelBroadcaster;
 
 use Ably\Exceptions\AblyException;
-use Illuminate\Broadcasting\BroadcastException;
 
 class Utils
 {
@@ -73,7 +72,7 @@ class Utils
         return base64_decode(strtr($data, '-_', '+/'), true);
     }
 
-    const SOCKET_ID_ERROR = "please make sure to send base64 encoded json with "
+    const SOCKET_ID_ERROR = "please make sure to send base64 url encoded json with "
     ."'connectionKey' and 'clientId' as keys. 'clientId' is null if connection is not identified";
 
     /**
@@ -87,9 +86,9 @@ class Utils
                 throw new AblyException("SocketId decoding failed, ".self::SOCKET_ID_ERROR);
             }
             if (!isset($socketIdObject->connectionKey)) {
-                throw new AblyException("ConnectionKey is missing, ".self::SOCKET_ID_ERROR);
+                throw new AblyException("ConnectionKey is not set, ".self::SOCKET_ID_ERROR);
             }
-            if (!isset($socketIdObject->clientId)) {
+            if (!property_exists($socketIdObject, 'clientId')) {
                 throw new AblyException("ClientId is missing, ".self::SOCKET_ID_ERROR);
             }
         }

@@ -320,7 +320,7 @@ class AblyBroadcaster extends Broadcaster
      */
     protected function buildAblyMessage($event, $payload = [], $socketIdObject = null)
     {
-        $message = tap(new AblyMessage, function ($message) use ($event, $payload, $socketIdObject) {
+        $message = tap(new AblyMessage, function ($message) use ($event, $payload) {
             $message->name = $event;
             $message->data = $payload;
         });

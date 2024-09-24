@@ -2,6 +2,7 @@
 
 namespace Ably\LaravelBroadcaster\Tests;
 
+use Ably\Exceptions\AblyException;
 use Ably\LaravelBroadcaster\Utils;
 
 class UtilsTest extends TestCase
@@ -27,12 +28,49 @@ class UtilsTest extends TestCase
         self::assertTrue($jwtIsValid);
     }
 
-    public function testValidateDecodingSocketId() {
+    /**
+     * @throws AblyException
+     */
+    public function testDecodingSocketId() {
         $socketId = new \stdClass();
         $socketId->connectionKey = 'key';
-        $socketId->clientId = 'clientId';
+        $socketId->clientId = null;
         $socketIdObject = Utils::decodeSocketId(Utils::base64url_encode(json_encode($socketId)));
         self::assertEquals('key', $socketIdObject->connectionKey);
-        self::assertEquals('clientId', $socketIdObject->clientId);
+        self::assertNull($socketIdObject->clientId);
+
+        $socketId = new \stdClass();
+        $socketId->connectionKey = 'key';
+        $socketId->clientId = 'id';
+        $socketIdObject = Utils::decodeSocketId(Utils::base64url_encode(json_encode($socketId)));
+        self::assertEquals('key', $socketIdObject->connectionKey);
+        self::assertEquals('id', $socketIdObject->clientId);
+    }
+
+    public function testExceptionOnDecodingInvalidSocketId()
+    {
+        self::expectException(AblyException::class);
+        self::expectExceptionMessage("SocketId decoding failed, ".Utils::SOCKET_ID_ERROR);
+        Utils::decodeSocketId("invalid_socket_id");
+    }
+
+    public function testExceptionOnMissingClientIdInSocketId()
+    {
+        $socketId = new \stdClass();
+        $socketId->connectionKey = 'key';
+
+        self::expectException(AblyException::class);
+        self::expectExceptionMessage("ClientId is missing, ".Utils::SOCKET_ID_ERROR);
+        Utils::decodeSocketId(Utils::base64url_encode(json_encode($socketId)));
+    }
+
+    public function testExceptionOnMissingConnectionKeyInSocketId()
+    {
+        $socketId = new \stdClass();
+        $socketId->clientId = 'id';
+
+        self::expectException(AblyException::class);
+        self::expectExceptionMessage("ConnectionKey is not set, ".Utils::SOCKET_ID_ERROR);
+        Utils::decodeSocketId(Utils::base64url_encode(json_encode($socketId)));
     }
 }
