@@ -2,6 +2,7 @@
 
 namespace Ably\LaravelBroadcaster;
 
+use Ably\Exceptions\AblyException;
 use Illuminate\Broadcasting\BroadcastException;
 
 class Utils
@@ -65,15 +66,28 @@ class Utils
         return rtrim(strtr(base64_encode($str), '+/', '-_'), '=');
     }
 
-    public static function decodeSocketId($socketId) {
-        if ($socketId) {
-            return json_decode(base64_decode($socketId), true);
-        }
-        return null;
-    }
 
-    public static function missingKeyErrorForSocketId($keyName) {
-        return $keyName." not present in socketId, please make sure to send base64 encoded json with "
-                ."connectionKey and clientId as keys. clientId is null if connection is not identified.";
+    const SOCKET_ID_ERROR = "please make sure to send base64 encoded json with "
+    ."'connectionKey' and 'clientId' as keys. 'clientId' is null if connection is not identified";
+
+    /**
+     * @throws AblyException
+     */
+    public static function decodeSocketId($socketId) {
+        $socketIdObject = null;
+        if ($socketId) {
+            try {
+                $socketIdObject = json_decode(base64_decode($socketId));
+            } catch (\Exception $e) {
+                throw new AblyException("SocketId decoding failed, ".self::SOCKET_ID_ERROR, 0, $e);
+            }
+            if (!isset($socketIdObject->connectionKey)) {
+                throw new AblyException("ConnectionKey is missing, ".self::SOCKET_ID_ERROR);
+            }
+            if (!isset($socketIdObject->clientId)) {
+                throw new AblyException("ClientId is missing, ".self::SOCKET_ID_ERROR);
+            }
+        }
+        return $socketIdObject;
     }
 }

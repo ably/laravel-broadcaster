@@ -347,7 +347,7 @@ class AblyBroadcasterTest extends TestCase
 //        self::assertArrayNotHasKey('socket', $message->data);
 
     }
-    public function testBuildMessageUsingProvidedSocketIdObject()
+    public function testBuildMessageBasedOnSocketIdObject()
     {
         $broadcaster = m::mock(AblyBroadcasterExposed::class, [$this->ably, []])->makePartial();
 
@@ -355,17 +355,21 @@ class AblyBroadcasterTest extends TestCase
             'foo' => 'bar',
             'chat' => 'hello there'
         ];
-
-        $socketIdObject = [
-            'connectionKey' => 'key',
-            'clientId' => 'id'
-        ];
-
-        $message = $broadcaster->buildAblyMessage('testEvent', $payload, $socketIdObject);
-        self::assertEquals('key', $message->connectionKey);
-        self::assertEquals('id', $message->clientId);
+        $message = $broadcaster->buildAblyMessage('testEvent', $payload);
         self::assertEquals('testEvent', $message->name);
         self::assertEquals($payload, $message->data);
+        self::assertNull($message->connectionKey);
+        self::assertNull($message->clientId);
+
+        $socketIdObject = new \stdClass();
+        $socketIdObject->connectionKey = 'foo';
+        $socketIdObject->clientId = 'sacOO7';
+
+        $message = $broadcaster->buildAblyMessage('testEvent', $payload, $socketIdObject);
+        self::assertEquals('testEvent', $message->name);
+        self::assertEquals($payload, $message->data);
+        self::assertEquals('foo', $message->connectionKey);
+        self::assertEquals('sacOO7', $message->clientId);
     }
 }
 

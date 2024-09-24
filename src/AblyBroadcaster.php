@@ -2,7 +2,6 @@
 
 namespace Ably\LaravelBroadcaster;
 
-use _PHPStan_cb8f9103f\Nette\Neon\Exception;
 use Ably\AblyRest;
 use Ably\Exceptions\AblyException;
 use Ably\Models\Message as AblyMessage;
@@ -169,17 +168,19 @@ class AblyBroadcaster extends Broadcaster
     /**
      * Broadcast the given event.
      *
-     * @param  array  $channels
-     * @param  string  $event
-     * @param  array  $payload
+     * @param array $channels
+     * @param string $event
+     * @param array $payload
      * @return void
      *
      * @throws \Illuminate\Broadcasting\BroadcastException
+     * @throws \Exception
      */
     public function broadcast($channels, $event, $payload = [])
     {
-        $socketIdObject = Utils::decodeSocketId(Arr::pull($payload, 'socket'));
+        $socketId = Arr::pull($payload, 'socket');
         try {
+            $socketIdObject = Utils::decodeSocketId($socketId);
             foreach ($this->formatChannels($channels) as $channel) {
                 $this->ably->channels->get($channel)->publish(
                     $this->buildAblyMessage($event, $payload, $socketIdObject)
@@ -314,9 +315,8 @@ class AblyBroadcaster extends Broadcaster
      *
      * @param string $event
      * @param array $payload
-     * @param array|null $socketIdObject
+     * @param object $socketIdObject
      * @return AblyMessage
-     * @throws Exception
      */
     protected function buildAblyMessage($event, $payload = [], $socketIdObject = null)
     {
@@ -326,18 +326,8 @@ class AblyBroadcaster extends Broadcaster
         });
 
         if ($socketIdObject) {
-            $connectionKey_key = 'connectionKey';
-            if (array_key_exists($connectionKey_key, $socketIdObject)) {
-                $message->connectionKey = $socketIdObject[$connectionKey_key];
-            } else {
-                throw new Exception(Utils::missingKeyErrorForSocketId($connectionKey_key));
-            }
-            $clientId_key = 'clientId';
-            if (array_key_exists($clientId_key, $socketIdObject)) {
-                $message->clientId = $socketIdObject[$clientId_key];
-            } else {
-                throw new Exception(Utils::missingKeyErrorForSocketId($clientId_key));
-            }
+            $message->connectionKey = $socketIdObject->connectionKey;
+            $message->clientId = $socketIdObject->clientId;
         }
         return $message;
     }
