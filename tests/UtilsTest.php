@@ -53,7 +53,7 @@ class UtilsTest extends TestCase
     public function testExceptionOnDecodingInvalidSocketId()
     {
         self::expectException(AblyException::class);
-        self::expectExceptionMessage("SocketId decoding failed, ".Utils::SOCKET_ID_ERROR);
+        self::expectExceptionMessage("Base64 decoding failed, ".Utils::SOCKET_ID_ERROR);
         Utils::decodeSocketId("invalid_socket_id");
     }
 

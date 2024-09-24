@@ -79,14 +79,20 @@ class Utils
     ."'connectionKey' and 'clientId' as keys. 'clientId' is null if connection is not identified";
 
     /**
+     * @return object
      * @throws AblyException
      */
-    public static function decodeSocketId($socketId) {
+    public static function decodeSocketId($socketId): ?object
+    {
         $socketIdObject = null;
         if ($socketId) {
-            $socketIdObject = json_decode(self::base64url_decode($socketId));
-            if (!$socketIdObject) {
-                throw new AblyException("SocketId decoding failed, ".self::SOCKET_ID_ERROR);
+            $socketIdJsonString = self::base64url_decode($socketId);
+            if (!$socketIdJsonString) {
+                throw new AblyException("Base64 decoding failed, ".self::SOCKET_ID_ERROR);
+            }
+            $socketIdObject = json_decode($socketIdJsonString);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new AblyException("JSON decoding failed: " . json_last_error_msg() . ", " . self::SOCKET_ID_ERROR);
             }
             if (!isset($socketIdObject->connectionKey)) {
                 throw new AblyException("ConnectionKey is not set, ".self::SOCKET_ID_ERROR);
