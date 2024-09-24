@@ -31,18 +31,21 @@ class UtilsTest extends TestCase
     /**
      * @throws AblyException
      */
-    public function testDecodingSocketId() {
-        $socketId = new \stdClass();
-        $socketId->connectionKey = 'key';
-        $socketId->clientId = null;
-        $socketIdObject = Utils::decodeSocketId(Utils::base64url_encode(json_encode($socketId)));
+    public function testDecodeSocketId() {
+        $socketIdObject = Utils::decodeSocketId(null);
+        self::assertNull($socketIdObject);
+
+        $originalSocketIdObj = new \stdClass();
+        $originalSocketIdObj->connectionKey = 'key';
+        $originalSocketIdObj->clientId = null;
+        $socketIdObject = Utils::decodeSocketId(Utils::base64url_encode(json_encode($originalSocketIdObj)));
         self::assertEquals('key', $socketIdObject->connectionKey);
         self::assertNull($socketIdObject->clientId);
 
-        $socketId = new \stdClass();
-        $socketId->connectionKey = 'key';
-        $socketId->clientId = 'id';
-        $socketIdObject = Utils::decodeSocketId(Utils::base64url_encode(json_encode($socketId)));
+        $originalSocketIdObj = new \stdClass();
+        $originalSocketIdObj->connectionKey = 'key';
+        $originalSocketIdObj->clientId = 'id';
+        $socketIdObject = Utils::decodeSocketId(Utils::base64url_encode(json_encode($originalSocketIdObj)));
         self::assertEquals('key', $socketIdObject->connectionKey);
         self::assertEquals('id', $socketIdObject->clientId);
     }
@@ -56,21 +59,21 @@ class UtilsTest extends TestCase
 
     public function testExceptionOnMissingClientIdInSocketId()
     {
-        $socketId = new \stdClass();
-        $socketId->connectionKey = 'key';
+        $socketIdObject = new \stdClass();
+        $socketIdObject->connectionKey = 'key';
 
         self::expectException(AblyException::class);
         self::expectExceptionMessage("ClientId is missing, ".Utils::SOCKET_ID_ERROR);
-        Utils::decodeSocketId(Utils::base64url_encode(json_encode($socketId)));
+        Utils::decodeSocketId(Utils::base64url_encode(json_encode($socketIdObject)));
     }
 
     public function testExceptionOnMissingConnectionKeyInSocketId()
     {
-        $socketId = new \stdClass();
-        $socketId->clientId = 'id';
+        $socketIdObject = new \stdClass();
+        $socketIdObject->clientId = 'id';
 
         self::expectException(AblyException::class);
         self::expectExceptionMessage("ConnectionKey is not set, ".Utils::SOCKET_ID_ERROR);
-        Utils::decodeSocketId(Utils::base64url_encode(json_encode($socketId)));
+        Utils::decodeSocketId(Utils::base64url_encode(json_encode($socketIdObject)));
     }
 }
