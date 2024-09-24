@@ -320,16 +320,33 @@ class AblyBroadcasterTest extends TestCase
         $this->assertcontains( 'Ably-Agent: '.$expectedLaravelHeader, $ably->http->lastHeaders, 'Expected Laravel broadcaster header in HTTP request '.json_encode($ably->http->lastHeaders));
     }
 
-    public function testPayloadShouldNotIncludeSocketKey()
+    public function testPublishPayloadShouldNotIncludeSocketKey()
     {
+        $ably = (new AblyFactory())->make([
+            'key' => 'abcd:efgh',
+            'httpClass' => 'Ably\LaravelBroadcaster\Tests\HttpMock',
+        ]);
+        $broadcaster = m::mock(AblyBroadcasterExposed::class, [$ably, []])->makePartial();
 
-//        self::assertArrayNotHasKey('socket', $message->data);
+        $socketIdObject = new \stdClass();
+        $socketIdObject->connectionKey = 'foo';
+        $socketIdObject->clientId = 'sacOO7';
+        $payload = [
+            'foo' => 'bar',
+            'socket' => Utils::base64url_encode(json_encode($socketIdObject))
+        ];
 
+        $broadcaster->broadcast(["channel1", "channel2"], 'testEvent', $payload);
+
+        self::assertCount(2, $broadcaster->payloads);
+        foreach ($broadcaster->payloads as $payload) {
+            self::assertArrayNotHasKey('socket', $payload);
+        }
     }
+
     public function testBuildMessageBasedOnSocketIdObject()
     {
         $broadcaster = m::mock(AblyBroadcasterExposed::class, [$this->ably, []])->makePartial();
-
         $payload = [
             'foo' => 'bar',
             'chat' => 'hello there'
@@ -354,8 +371,10 @@ class AblyBroadcasterTest extends TestCase
 
 class AblyBroadcasterExposed extends AblyBroadcaster
 {
+    public $payloads = [];
     public function buildAblyMessage($event, $payload = [], $socketIdObject = null)
     {
+        $this->payloads[] = $payload;
         return parent::buildAblyMessage($event, $payload, $socketIdObject);
     }
 }

@@ -60,6 +60,9 @@ class Utils
         return $isSignatureValid && ! $isTokenExpired;
     }
 
+    /**
+     * https://www.php.net/manual/en/function.base64-encode.php#127544
+     */
     public static function base64url_encode($str): string
     {
         return rtrim(strtr(base64_encode($str), '+/', '-_'), '=');
