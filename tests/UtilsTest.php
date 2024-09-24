@@ -26,4 +26,13 @@ class UtilsTest extends TestCase
         $jwtIsValid = Utils::isJwtValid($jwtToken, $timeFn, 'efgh');
         self::assertTrue($jwtIsValid);
     }
+
+    public function testValidateDecodingSocketId() {
+        $socketId = new \stdClass();
+        $socketId->connectionKey = 'key';
+        $socketId->clientId = 'clientId';
+        $socketIdObject = Utils::decodeSocketId(Utils::base64url_encode(json_encode($socketId)));
+        self::assertEquals('key', $socketIdObject->connectionKey);
+        self::assertEquals('clientId', $socketIdObject->clientId);
+    }
 }
