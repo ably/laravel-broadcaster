@@ -333,7 +333,7 @@ class AblyBroadcasterTest extends TestCase
         $socketIdObject->clientId = 'sacOO7';
         $payload = [
             'foo' => 'bar',
-            'socket' => Utils::base64url_encode(json_encode($socketIdObject))
+            'socket' => Utils::base64urlEncode(json_encode($socketIdObject))
         ];
 
         $broadcaster->broadcast(["channel1", "channel2"], 'testEvent', $payload);

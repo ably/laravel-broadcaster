@@ -11,11 +11,11 @@ class Utils
      * @param  string  $jwt
      * @return array
      */
-    public static function parseJwt($jwt)
+    public static function parseJwt($jwt): array
     {
         $tokenParts = explode('.', $jwt);
-        $header = json_decode(self::base64url_decode($tokenParts[0]), true);
-        $payload = json_decode(self::base64url_decode($tokenParts[1]), true);
+        $header = json_decode(self::base64urlDecode($tokenParts[0]), true);
+        $payload = json_decode(self::base64urlDecode($tokenParts[1]), true);
 
         return ['header' => $header, 'payload' => $payload];
     }
@@ -25,13 +25,13 @@ class Utils
      * @param  array  $payload
      * @return string
      */
-    public static function generateJwt($headers, $payload, $key)
+    public static function generateJwt($headers, $payload, $key): string
     {
-        $encodedHeaders = self::base64url_encode(json_encode($headers));
-        $encodedPayload = self::base64url_encode(json_encode($payload));
+        $encodedHeaders = self::base64urlEncode(json_encode($headers));
+        $encodedPayload = self::base64urlEncode(json_encode($payload));
 
         $signature = hash_hmac('SHA256', "$encodedHeaders.$encodedPayload", $key, true);
-        $encodedSignature = self::base64url_encode($signature);
+        $encodedSignature = self::base64urlEncode($signature);
 
         return "$encodedHeaders.$encodedPayload.$encodedSignature";
     }
@@ -41,7 +41,7 @@ class Utils
      * @param  mixed  $timeFn
      * @return bool
      */
-    public static function isJwtValid($jwt, $timeFn, $key)
+    public static function isJwtValid($jwt, $timeFn, $key): bool
     {
         // split the jwt
         $tokenParts = explode('.', $jwt);
@@ -50,12 +50,12 @@ class Utils
         $tokenSignature = $tokenParts[2];
 
         // check the expiration time - note this will cause an error if there is no 'exp' claim in the jwt
-        $expiration = json_decode(self::base64url_decode($payload))->exp;
+        $expiration = json_decode(self::base64urlDecode($payload))->exp;
         $isTokenExpired = $expiration <= $timeFn();
 
         // build a signature based on the header and payload using the secret
         $signature = hash_hmac('SHA256', $header.'.'.$payload, $key, true);
-        $isSignatureValid = self::base64url_encode($signature) === $tokenSignature;
+        $isSignatureValid = self::base64urlEncode($signature) === $tokenSignature;
 
         return $isSignatureValid && ! $isTokenExpired;
     }
@@ -63,7 +63,7 @@ class Utils
     /**
      * https://www.php.net/manual/en/function.base64-encode.php#127544
      */
-    public static function base64url_encode($str): string
+    public static function base64urlEncode($str): string
     {
         return rtrim(strtr(base64_encode($str), '+/', '-_'), '=');
     }
@@ -71,7 +71,8 @@ class Utils
     /**
      * https://www.php.net/manual/en/function.base64-encode.php#127544
      */
-    public static function base64url_decode($data) {
+    public static function base64urlDecode($data): string
+    {
         return base64_decode(strtr($data, '-_', '+/'), true);
     }
 
@@ -86,7 +87,7 @@ class Utils
     {
         $socketIdObject = null;
         if ($socketId) {
-            $socketIdJsonString = self::base64url_decode($socketId);
+            $socketIdJsonString = self::base64urlDecode($socketId);
             if (!$socketIdJsonString) {
                 throw new AblyException("Base64 decoding failed, ".self::SOCKET_ID_ERROR);
             }
