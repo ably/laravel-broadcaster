@@ -168,19 +168,22 @@ class AblyBroadcaster extends Broadcaster
     /**
      * Broadcast the given event.
      *
-     * @param  array  $channels
-     * @param  string  $event
-     * @param  array  $payload
+     * @param array $channels
+     * @param string $event
+     * @param array $payload
      * @return void
      *
      * @throws \Illuminate\Broadcasting\BroadcastException
+     * @throws \Exception
      */
     public function broadcast($channels, $event, $payload = [])
     {
+        $socketId = Arr::pull($payload, 'socket');
         try {
+            $socketIdObject = Utils::decodeSocketId($socketId);
             foreach ($this->formatChannels($channels) as $channel) {
                 $this->ably->channels->get($channel)->publish(
-                    $this->buildAblyMessage($event, $payload)
+                    $this->buildAblyMessage($event, $payload, $socketIdObject)
                 );
             }
         } catch (AblyException $e) {
@@ -310,19 +313,23 @@ class AblyBroadcaster extends Broadcaster
     /**
      * Build an Ably message object for broadcasting.
      *
-     * @param  string  $event
-     * @param  array  $payload
-     * @return \Ably\Models\Message
+     * @param string $event
+     * @param array $payload
+     * @param object $socketIdObject
+     * @return AblyMessage
      */
-    protected function buildAblyMessage($event, $payload = [])
+    protected function buildAblyMessage($event, $payload = [], $socketIdObject = null)
     {
-        $socket = Arr::pull($payload, 'socket');
-
-        return tap(new AblyMessage, function ($message) use ($event, $payload, $socket) {
+        $message = tap(new AblyMessage, function ($message) use ($event, $payload) {
             $message->name = $event;
             $message->data = $payload;
-            $message->connectionKey = $socket;
         });
+
+        if ($socketIdObject) {
+            $message->connectionKey = $socketIdObject->connectionKey;
+            $message->clientId = $socketIdObject->clientId;
+        }
+        return $message;
     }
 
     /**

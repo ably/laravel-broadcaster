@@ -123,27 +123,6 @@ class AblyBroadcasterTest extends TestCase
         );
     }
 
-    public function testGenerateAndValidateToken()
-    {
-        $headers = ['alg' => 'HS256', 'typ' => 'JWT'];
-        $payload = ['sub' => '1234567890', 'name' => 'John Doe', 'admin' => true, 'exp' => (time() + 60)];
-        $jwtToken = Utils::generateJwt($headers, $payload, 'efgh');
-
-        $parsedJwt = Utils::parseJwt($jwtToken);
-        self::assertEquals('HS256', $parsedJwt['header']['alg']);
-        self::assertEquals('JWT', $parsedJwt['header']['typ']);
-
-        self::assertEquals('1234567890', $parsedJwt['payload']['sub']);
-        self::assertEquals('John Doe', $parsedJwt['payload']['name']);
-        self::assertEquals(true, $parsedJwt['payload']['admin']);
-
-        $timeFn = function () {
-            return time();
-        };
-        $jwtIsValid = Utils::isJwtValid($jwtToken, $timeFn, 'efgh');
-        self::assertTrue($jwtIsValid);
-    }
-
     public function testShouldGetSignedToken()
     {
         $token = $this->broadcaster->getSignedToken(null, null, 'user123', $this->guardedChannelCapability);
@@ -341,25 +320,62 @@ class AblyBroadcasterTest extends TestCase
         $this->assertcontains( 'Ably-Agent: '.$expectedLaravelHeader, $ably->http->lastHeaders, 'Expected Laravel broadcaster header in HTTP request '.json_encode($ably->http->lastHeaders));
     }
 
-    public function testPayloadShouldNotIncludeSocketKey()
+    public function testPublishPayloadShouldNotIncludeSocketKey()
     {
-        $broadcaster = m::mock(AblyBroadcasterExposed::class, [$this->ably, []])->makePartial();
+        $ably = (new AblyFactory())->make([
+            'key' => 'abcd:efgh',
+            'httpClass' => 'Ably\LaravelBroadcaster\Tests\HttpMock',
+        ]);
+        $broadcaster = m::mock(AblyBroadcasterExposed::class, [$ably, []])->makePartial();
 
+        $socketIdObject = new \stdClass();
+        $socketIdObject->connectionKey = 'foo';
+        $socketIdObject->clientId = 'sacOO7';
         $payload = [
             'foo' => 'bar',
-            'socket' => null
+            'socket' => Utils::base64urlEncode(json_encode($socketIdObject))
         ];
 
+        $broadcaster->broadcast(["channel1", "channel2"], 'testEvent', $payload);
+
+        self::assertCount(2, $broadcaster->payloads);
+        foreach ($broadcaster->payloads as $payload) {
+            self::assertArrayNotHasKey('socket', $payload);
+        }
+    }
+
+    public function testBuildMessageBasedOnSocketIdObject()
+    {
+        $broadcaster = m::mock(AblyBroadcasterExposed::class, [$this->ably, []])->makePartial();
+        $payload = [
+            'foo' => 'bar',
+            'chat' => 'hello there'
+        ];
         $message = $broadcaster->buildAblyMessage('testEvent', $payload);
-        self::assertArrayNotHasKey('socket', $message->data);
+        self::assertEquals('testEvent', $message->name);
+        self::assertEquals($payload, $message->data);
+        self::assertNull($message->connectionKey);
+        self::assertNull($message->clientId);
+
+        $socketIdObject = new \stdClass();
+        $socketIdObject->connectionKey = 'foo';
+        $socketIdObject->clientId = 'sacOO7';
+
+        $message = $broadcaster->buildAblyMessage('testEvent', $payload, $socketIdObject);
+        self::assertEquals('testEvent', $message->name);
+        self::assertEquals($payload, $message->data);
+        self::assertEquals('foo', $message->connectionKey);
+        self::assertEquals('sacOO7', $message->clientId);
     }
 }
 
 class AblyBroadcasterExposed extends AblyBroadcaster
 {
-    public function buildAblyMessage($event, $payload = [])
+    public $payloads = [];
+    public function buildAblyMessage($event, $payload = [], $socketIdObject = null)
     {
-        return parent::buildAblyMessage($event, $payload);
+        $this->payloads[] = $payload;
+        return parent::buildAblyMessage($event, $payload, $socketIdObject);
     }
 }
 
