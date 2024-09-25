@@ -1,5 +1,25 @@
 # Changelog
 
+## [v1.0.6](https://github.com/ably/laravel-broadcaster/tree/v1.0.6)
+
+[Full Changelog](https://github.com/ably/laravel-broadcaster/compare/v1.0.5...v1.0.6)
+
+**Fixed bugs:**
+
+- Using -\>toOthers\(\) results in a "Ably error: Malformed message; invalid connectionKey" Same as issue 38 [\#48](https://github.com/ably/laravel-broadcaster/issues/48)
+- Issue with client ID when using SPA like inertia [\#45](https://github.com/ably/laravel-broadcaster/issues/45)
+
+**Closed issues:**
+
+- Fix base64 decode  [\#51](https://github.com/ably/laravel-broadcaster/issues/51)
+- Monitor channel connection/disconnect [\#47](https://github.com/ably/laravel-broadcaster/issues/47)
+- Using -\>toOthers\(\) results in a "Ably error: Malformed message; invalid connectionKey" [\#38](https://github.com/ably/laravel-broadcaster/issues/38)
+
+**Merged pull requests:**
+
+- \[ECO-4977\] Fix/broadcast to others [\#50](https://github.com/ably/laravel-broadcaster/pull/50) ([sacOO7](https://github.com/sacOO7))
+- Update README [\#49](https://github.com/ably/laravel-broadcaster/pull/49) ([sacOO7](https://github.com/sacOO7))
+
 ## [v1.0.5](https://github.com/ably/laravel-broadcaster/tree/v1.0.5)
 
 [Full Changelog](https://github.com/ably/laravel-broadcaster/compare/v1.0.4...v1.0.5)
