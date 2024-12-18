@@ -214,7 +214,7 @@ class AblyBroadcaster extends Broadcaster
         $serverTimeFn = function () {
             return $this->getServerTime();
         };
-        if ($token && Utils::isJwtValid($token, $serverTimeFn, $this->getPrivateToken())) {
+        if ($token && Utils::isJwtValid($token, $serverTimeFn, $this->getPrivateToken()) && Utils::isSameUser($token, $clientId)) {
             $payload = Utils::parseJwt($token)['payload'];
             $iat = $payload['iat'];
             $exp = $payload['exp'];
