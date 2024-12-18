@@ -74,7 +74,9 @@ class AblyBroadcaster extends Broadcaster
     }
 
     /**
-     * @return int
+     * Get the current server time adjusted by the Ably server time difference (if clock difference exists).
+     *
+     * @return int The current server time in seconds.
      */
     private function getServerTime()
     {
@@ -217,6 +219,14 @@ class AblyBroadcaster extends Broadcaster
             $iat = $payload['iat'];
             $exp = $payload['exp'];
             $channelClaims = json_decode($payload['x-ably-capability'], true);
+
+            // Check if the token is about to expire and renew it if necessary
+            // The Laravel Echo client typically initiates token renewal 30 seconds before expiry
+            // Spec: RTN22
+            if ($exp - $serverTimeFn() <= 30) {
+                $iat = $serverTimeFn();
+                $exp = $iat + $this->tokenExpiry;
+            }
         } else {
             $iat = $serverTimeFn();
             $exp = $iat + $this->tokenExpiry;
