@@ -27,9 +27,9 @@ class AblyBroadcaster extends Broadcaster
      * Used for setting expiry of issues tokens.
      *
      * @var int|mixed
-     * @default 1 hr
+     * @default 8 hr
      */
-    private $tokenExpiry = 3600;
+    private $tokenExpiry = 28800;
 
     /**
      * Public channel capabilities. By default, all public channels are given subscribe, history and channel-metadata access.
