@@ -137,7 +137,7 @@ npm run dev
         'ably' => [
             'driver' => 'ably',
             'key' => env('ABLY_KEY'),
-            'token_expiry' => env('ABLY_TOKEN_EXPIRY', 3600)
+            'token_expiry' => env('ABLY_TOKEN_EXPIRY', 28800)
         ],
 ```
 
@@ -257,3 +257,4 @@ This library uses [semantic versioning](http://semver.org/). For each release, t
 7. Add a tag and push it to origin - e.g.: `git tag v1.0.6 && git push origin v1.0.6`.
 8. Visit https://github.com/ably/laravel-broadcaster/tags and add release notes for the release including links to the changelog entry.
 9. Visit https://packagist.org/packages/ably/laravel-broadcaster, log in to Packagist, and click the "Update" button.
+10. Create the entry on the [Ably Changelog](https://changelog.ably.com/) (via [headwayapp](https://headwayapp.co/))

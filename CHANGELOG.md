@@ -1,5 +1,18 @@
 # Changelog
 
+## [v1.0.7](https://github.com/ably/laravel-broadcaster/tree/v1.0.7)
+
+[Full Changelog](https://github.com/ably/laravel-broadcaster/compare/v1.0.6...v1.0.7)
+
+**Laravel 12 support**
+
+- Add support for laravel 12 [\#58](https://github.com/ably/laravel-broadcaster/issues/58)
+
+**Merged pull requests:**
+
+- \[ECO-5208\] Support laravel 12 [\#59](https://github.com/ably/laravel-broadcaster/pull/59) ([sacOO7](https://github.com/sacOO7))
+- docs\(README\): capability operations section links [\#57](https://github.com/ably/laravel-broadcaster/pull/57) ([guspan-tanadi](https://github.com/guspan-tanadi))
+
 ## [v1.0.6](https://github.com/ably/laravel-broadcaster/tree/v1.0.6)
 
 [Full Changelog](https://github.com/ably/laravel-broadcaster/compare/v1.0.5...v1.0.6)
