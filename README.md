@@ -126,10 +126,11 @@ npm run dev
         ],
 ```
 
-**3. Update token expiry. Default: 3600 seconds (1 hr)**
+**3. Update token expiry. Default: 28800 seconds (8 hrs)**
+- Default expiry set to 8 hrs in order to reduce CPU workload for auth requests. Check [discussion](https://github.com/ably/laravel-broadcaster/issues/55#issuecomment-2582845145).
 - Set `ABLY_TOKEN_EXPIRY` in **.env** file.
 ```dotenv
-    ABLY_TOKEN_EXPIRY=21600
+    ABLY_TOKEN_EXPIRY=43200
 ```
 - Update ably section under `config/broadcasting.php` with
 ```php
