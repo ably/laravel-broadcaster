@@ -35,8 +35,9 @@ jobs:
             testbench: 10.*
           - laravel-version: 13.*
             testbench: 11.*
-            
+
         exclude:
+          # Laravel 13 requires PHP >= 8.3
           - laravel-version: 13.*
             php-version: 7.2
           - laravel-version: 13.*
@@ -49,6 +50,7 @@ jobs:
             php-version: 8.1
           - laravel-version: 13.*
             php-version: 8.2
+          # Laravel 12 requires PHP >= 8.2
           - laravel-version: 12.*
             php-version: 7.2
           - laravel-version: 12.*
@@ -59,6 +61,7 @@ jobs:
             php-version: 8.0
           - laravel-version: 12.*
             php-version: 8.1
+          # Laravel 11 requires PHP >= 8.2
           - laravel-version: 11.*
             php-version: 7.2
           - laravel-version: 11.*
@@ -69,6 +72,7 @@ jobs:
             php-version: 8.0
           - laravel-version: 11.*
             php-version: 8.1
+          # Laravel 10 requires PHP >= 8.1
           - laravel-version: 10.*
             php-version: 7.2
           - laravel-version: 10.*
@@ -77,14 +81,17 @@ jobs:
             php-version: 7.4
           - laravel-version: 10.*
             php-version: 8.0
+          # Laravel 9 requires PHP >= 8.0
+          - laravel-version: 9.*
+            php-version: 7.2
+          - laravel-version: 9.*
+            php-version: 7.3
+          - laravel-version: 9.*
+            php-version: 7.4
+          # Laravel 8 requires PHP >= 7.3
           - laravel-version: 8.*
             php-version: 7.2
-          - laravel-version: 9.*
-            php-version: 7.2
-          - laravel-version: 9.*
-            php-version: 7.3
-          - laravel-version: 9.*
-            php-version: 7.4
+          # Laravel 6/7 max PHP 8.0
           - laravel-version: 6.*
             php-version: 8.1
           - laravel-version: 7.*
@@ -105,16 +112,36 @@ jobs:
             php-version: 8.5
           - laravel-version: 7.*
             php-version: 8.5
+          # Laravel 8 max PHP 8.1
+          - laravel-version: 8.*
+            php-version: 8.2
+          - laravel-version: 8.*
+            php-version: 8.3
+          - laravel-version: 8.*
+            php-version: 8.4
           - laravel-version: 8.*
             php-version: 8.5
+          # Laravel 9 max PHP 8.2
           - laravel-version: 9.*
+            php-version: 8.3
+          - laravel-version: 9.*
+            php-version: 8.4
+          - laravel-version: 9.*
+            php-version: 8.5
+          # Laravel 10 max PHP 8.3
+          - laravel-version: 10.*
+            php-version: 8.4
+          - laravel-version: 10.*
+            php-version: 8.5
+          # Laravel 11 max PHP 8.4
+          - laravel-version: 11.*
             php-version: 8.5
 
     name: P${{ matrix.php-version }} - L${{ matrix.laravel-version }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up PHP ${{ matrix.php-version }}
         uses: shivammathur/setup-php@v2
@@ -123,6 +150,9 @@ jobs:
 
       - name: Validate composer.json and composer.lock
         run: composer validate
+
+      - name: Allow installing packages with security advisories
+        run: composer config audit.block-insecure false
 
       - name: Install dependencies
         run: |
@@ -139,7 +169,7 @@ jobs:
     runs-on: ubuntu-latest
     name: PHP Linting (Pint)
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 2
       - name: "laravel-pint"
