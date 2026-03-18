@@ -1,5 +1,13 @@
 # Changelog
 
+## [v1.0.8](https://github.com/ably/laravel-broadcaster/tree/v1.0.8)
+
+[Full Changelog](https://github.com/ably/laravel-broadcaster/compare/v1.0.7...v1.0.8)
+
+**Laravel 13 support**
+
+- Add support for laravel 13 [\#68](https://github.com/ably/laravel-broadcaster/pull/68)
+
 ## [v1.0.7](https://github.com/ably/laravel-broadcaster/tree/v1.0.7)
 
 [Full Changelog](https://github.com/ably/laravel-broadcaster/compare/v1.0.6...v1.0.7)
