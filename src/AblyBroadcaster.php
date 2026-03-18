@@ -14,7 +14,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class AblyBroadcaster extends Broadcaster
 {
-    const LIB_VERSION = '1.0.7';
+    const LIB_VERSION = '1.0.8';
 
     /**
      * The AblyRest SDK instance.
