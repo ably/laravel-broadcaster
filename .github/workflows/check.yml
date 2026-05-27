@@ -161,9 +161,12 @@ jobs:
         run: composer config audit.block-insecure false
 
       - name: Install dependencies
+        env:
+          LARAVEL_VERSION: ${{ matrix.laravel-version }}
+          TESTBENCH_VERSION: ${{ matrix.testbench }}
         run: |
-          composer require "laravel/framework:${{ matrix.laravel-version }}" --no-interaction --no-update
-          composer require --dev "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          composer require "laravel/framework:${LARAVEL_VERSION}" --no-interaction --no-update
+          composer require --dev "orchestra/testbench:${TESTBENCH_VERSION}" --no-interaction --no-update
           composer install --prefer-dist --no-progress
 
       # the test script is configured in composer.json.
