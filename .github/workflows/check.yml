@@ -8,11 +8,15 @@ on:
     branches:
       - main
 
+permissions: {}
+
 jobs:
   check:
 
     runs-on: ubuntu-latest
     needs: phplint
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -141,10 +145,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
 
       - name: Set up PHP ${{ matrix.php-version }}
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@7c071dfe9dc99bdf297fa79cb49ea005b9fcadbc # 2.37.1
         with:
           php-version: ${{ matrix.php-version }}
 
@@ -155,9 +161,12 @@ jobs:
         run: composer config audit.block-insecure false
 
       - name: Install dependencies
+        env:
+          LARAVEL_VERSION: ${{ matrix.laravel-version }}
+          TESTBENCH_VERSION: ${{ matrix.testbench }}
         run: |
-          composer require "laravel/framework:${{ matrix.laravel-version }}" --no-interaction --no-update
-          composer require --dev "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          composer require "laravel/framework:${LARAVEL_VERSION}" --no-interaction --no-update
+          composer require --dev "orchestra/testbench:${TESTBENCH_VERSION}" --no-interaction --no-update
           composer install --prefer-dist --no-progress
 
       # the test script is configured in composer.json.
@@ -168,11 +177,14 @@ jobs:
   phplint:
     runs-on: ubuntu-latest
     name: PHP Linting (Pint)
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 2
+          persist-credentials: false
       - name: "laravel-pint"
-        uses: aglipanci/laravel-pint-action@1.0.0
+        uses: aglipanci/laravel-pint-action@643466ad03b726047b3c78b531be5ec7835429ff # 1.0.0
         with:
           preset: laravel
