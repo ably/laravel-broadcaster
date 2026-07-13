@@ -184,7 +184,8 @@ class AblyBroadcasterTest extends TestCase
         $token = $this->broadcaster->getSignedToken('private:channel3', $token, 'user98', $this->guardedChannelCapability);
         $parsedToken = Utils::parseJwt($token);
         $payload = $parsedToken['payload'];
-        $expectedCapability = '{"public:*":["subscribe","history","channel-metadata"],"private:channel":["*"],"private:channel2":["*"],"private:channel3":["*"]}';
+        // Since this is a different user, the capabilities from previous token will be reset and only returned for given channel
+        $expectedCapability = '{"public:*":["subscribe","history","channel-metadata"],"private:channel3":["*"]}';
         self::assertEquals('user98', $payload['x-ably-clientId']);
         self::assertEquals($expectedCapability, $payload['x-ably-capability']);
         self::assertEquals($iat, $payload['iat']);

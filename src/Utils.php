@@ -104,4 +104,19 @@ class Utils
         }
         return $socketIdObject;
     }
+
+    public static function isSameUser($token, $clientId)
+    {
+        // Decode the JWT token to extract the payload
+        $decodedToken = Utils::parseJwt($token);
+        $payload = $decodedToken['payload'];
+
+        // Check if the clientId in the payload matches the provided clientId
+        if (isset($payload['x-ably-clientId']) && $payload['x-ably-clientId'] == $clientId) {
+            return true;
+        }
+
+        // If the clientId does not match, return false
+        return false;
+    }
 }
