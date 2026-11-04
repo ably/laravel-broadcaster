@@ -2,8 +2,8 @@
 
 namespace Ably\LaravelBroadcaster\Tests;
 
-use Ably\Exceptions\AblyException;
 use Ably\LaravelBroadcaster\Utils;
+use Ably\PubSub\Exceptions\AblyException;
 
 class UtilsTest extends TestCase
 {

@@ -2,9 +2,9 @@
 
 namespace Ably\LaravelBroadcaster;
 
-use Ably\AblyRest;
-use Ably\Exceptions\AblyException;
-use Ably\Models\Message as AblyMessage;
+use Ably\PubSub\Exceptions\AblyException;
+use Ably\PubSub\Models\Message as AblyMessage;
+use Ably\PubSub\PubSubHttpClient;
 use Illuminate\Broadcasting\Broadcasters\Broadcaster;
 use Illuminate\Broadcasting\BroadcastException;
 use Illuminate\Support\Facades\Cache;
@@ -17,9 +17,9 @@ class AblyBroadcaster extends Broadcaster
     const LIB_VERSION = '1.0.8';
 
     /**
-     * The AblyRest SDK instance.
+     * The Ably Pub/Sub HTTP (REST) client, created with \Ably\PubSub\Server::createHttpClient().
      *
-     * @var \Ably\AblyRest
+     * @var \Ably\PubSub\PubSubHttpClient
      */
     protected $ably;
 
@@ -51,12 +51,23 @@ class AblyBroadcaster extends Broadcaster
     /**
      * Create a new broadcaster instance.
      *
-     * @param  \Ably\AblyRest  $ably
+     * @param  \Ably\PubSub\PubSubHttpClient  $ably  Build it with \Ably\PubSub\Server::createHttpClient()
      * @param  array  $config
      * @return void
+     *
+     * @throws \InvalidArgumentException if $ably is not a \Ably\PubSub\PubSubHttpClient
      */
-    public function __construct(AblyRest $ably, $config)
+    public function __construct($ably, $config)
     {
+        if (! $ably instanceof PubSubHttpClient) {
+            throw new \InvalidArgumentException(sprintf(
+                'AblyBroadcaster expects an %s created with Ably\PubSub\Server::createHttpClient(), %s given. '
+                .'See "Upgrading to 1.1" in the ably/laravel-broadcaster README.',
+                PubSubHttpClient::class,
+                get_debug_type($ably)
+            ));
+        }
+
         $this->ably = $ably;
 
         if (array_key_exists('sync_server_time', $config) && $config['sync_server_time']) {
