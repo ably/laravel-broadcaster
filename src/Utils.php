@@ -2,7 +2,7 @@
 
 namespace Ably\LaravelBroadcaster;
 
-use Ably\Exceptions\AblyException;
+use Ably\PubSub\Exceptions\AblyException;
 
 class Utils
 {

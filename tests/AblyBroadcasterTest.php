@@ -2,11 +2,11 @@
 
 namespace Ably\LaravelBroadcaster\Tests;
 
-use Ably\AblyRest;
-use Ably\Http;
 use Ably\LaravelBroadcaster\AblyBroadcaster;
 use Ably\LaravelBroadcaster\Utils;
-use Ably\Utils\Miscellaneous;
+use Ably\PubSub\Http;
+use Ably\PubSub\PubSubHttpClient;
+use Ably\PubSub\Utils\Miscellaneous;
 use Illuminate\Http\Request;
 use Mockery as m;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -26,7 +26,7 @@ class AblyBroadcasterTest extends TestCase
     {
         parent::setUp();
 
-        $this->ably = m::mock(AblyRest::class, ['abcd:efgh']);
+        $this->ably = m::mock(PubSubHttpClient::class, ['abcd:efgh']);
 
         $this->ably->shouldReceive('time')
                    ->zeroOrMoreTimes()
@@ -315,8 +315,7 @@ class AblyBroadcasterTest extends TestCase
             'httpClass' => 'Ably\LaravelBroadcaster\Tests\HttpMock',
         ]);
         $ably->time();
-        $laravelVersion = Miscellaneous::getNumeric(app()->version());
-        $expectedLaravelHeader = 'ably-php/'.\Ably\Defaults::LIB_VERSION.' '.'php/'.Miscellaneous::getNumeric(phpversion()).' laravel-broadcaster/'.AblyBroadcaster::LIB_VERSION.' laravel/'.$laravelVersion;
+        $expectedLaravelHeader = 'ably-pubsub-php/'.\Ably\PubSub\Defaults::LIB_VERSION.' '.'php/'.Miscellaneous::getNumeric(phpversion()).' laravel-broadcaster/'.AblyBroadcaster::LIB_VERSION.' '.\Ably\PubSub\Server::SERVER_AGENT_IDENTIFIER;
         $this->assertcontains( 'Ably-Agent: '.$expectedLaravelHeader, $ably->http->lastHeaders, 'Expected Laravel broadcaster header in HTTP request '.json_encode($ably->http->lastHeaders));
     }
 
