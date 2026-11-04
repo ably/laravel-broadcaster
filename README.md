@@ -9,7 +9,7 @@
 
 _[Ably](https://ably.com) is the platform that powers synchronized digital experiences in realtime. Whether attending an event in a virtual venue, receiving realtime financial information, or monitoring live car performance data – consumers simply expect realtime digital experiences as standard. Ably provides a suite of APIs to build, extend, and deliver powerful digital experiences in realtime for more than 250 million devices across 80 countries each month. Organizations like Bloomberg, HubSpot, Verizon, and Hopin depend on Ably’s platform to offload the growing complexity of business-critical realtime data synchronization at global scale. For more information, see the [Ably documentation](https://ably.com/docs)._
 
-This implements ably broadcaster as a independent service provider library for [Laravel](https://laravel.com/) using [ably-php](https://github.com/ably/ably-php). This library works with the [ably-js](https://github.com/ably/ably-js) based [ably-laravel-echo](https://github.com/ably-forks/echo) client framework with enhanced features. This project is the successor to the [pusher-client based ably broadcaster](https://laravel.com/docs/9.x/broadcasting#client-ably).
+This implements ably broadcaster as a independent service provider library for [Laravel](https://laravel.com/) using the [Ably Pub/Sub PHP SDK](https://github.com/ably/ably-pubsub-php) (`ably/pubsub-server`). This library works with the [ably-js](https://github.com/ably/ably-js) based [ably-laravel-echo](https://github.com/ably-forks/echo) client framework with enhanced features. This project is the successor to the [pusher-client based ably broadcaster](https://laravel.com/docs/9.x/broadcasting#client-ably).
 
 ## Features
 - Native ably-js support.
@@ -24,8 +24,9 @@ This implements ably broadcaster as a independent service provider library for [
 - Fixes intermittent presence leave issue for channel members.
 
 ## Requirements
-1. PHP version >= 7.2.0
-2. Laravel version >= 6.0.0
+1. PHP version >= 8.1 with the `curl`, `json` and `openssl` extensions
+2. Laravel version >= 8.0 (on Laravel 8 this means exactly PHP 8.1, as Laravel 8 does not support PHP >= 8.2)
+- On PHP 7.2 – 8.0 or Laravel 6 / 7, Composer keeps you on `ably/laravel-broadcaster` 1.0.x. It keeps working on accounts without monthly-active-user pricing, but 1.0.x is **rejected on MAU-enabled accounts** and only receives critical fixes until about October 2027.
 
 ## Installation
 
@@ -34,6 +35,8 @@ You can install the package via composer
 ```
 composer require ably/laravel-broadcaster
 ```
+
+> **Upgrading from 1.0.x?** The default Ably hosts change and egress allowlists may need updating; see [Upgrading to 1.1](#upgrading-to-11) and [Network requirements](#network-requirements).
 
 ## Setup
 
@@ -66,8 +69,9 @@ Finally, you are ready to install and configure [Ably Laravel Echo](https://gith
 
 [Ably Laravel Echo](https://github.com/ably-forks/echo/) is a JavaScript library that makes it painless to subscribe to channels and listen for events broadcast by your server-side broadcasting driver. Ably is maintaining a fork of the official laravel-echo module which allows you to use the official [ably-js SDK](https://github.com/ably/ably-js). In this example, we will also install the official ably package:
 ```
-npm install @ably/laravel-echo ably@1.x
+npm install @ably/laravel-echo ably@^1.2.36
 ```
+> **Note** - ably-js <= 1.2.35 is sunset. `ably-forks/laravel-echo` is moving to ably-js v2; this section will be updated when that is released.
 
 Once Echo is installed, you are ready to create a fresh Echo instance in your applications JavaScript. A great place to do this is at the bottom of the `resources/js/bootstrap.js` file that is included with the Laravel framework. By default, an example Echo configuration is already included in this file; however, the default configuration in the `bootstrap.js` file is intended for Pusher. You may copy the configuration below to transition your configuration to Ably.
 
@@ -160,6 +164,27 @@ npm run dev
         ],
 ```
 
+## Network requirements
+From 1.1 the broadcaster calls `main.realtime.ably.net` and falls back to `main.[a-e].fallback.ably-realtime.com`
+(1.0.x used `rest.ably.io` and `[a-e].ably-realtime.com`). Allow `*.realtime.ably.net` and `*.fallback.ably-realtime.com`
+in egress firewalls and proxies. Proxies are configured with `http_proxy` / `https_proxy` in `$_SERVER`, as before.
+If these hosts are blocked, publishing fails with `BroadcastException`. If packets are dropped rather than rejected,
+each publish can block for about 16 seconds (4 s connect timeout × up to 4 hosts), so check queue job timeouts.
+With `sync_server_time` enabled, the broadcaster requests Ably's server time (`GET /time`) when it is created and its cached value is missing or older than 6 hours (e.g. after a fresh deploy).
+Apps that use `ably` as the default broadcaster and load `routes/channels.php` create the broadcaster while booting, so blocked egress then fails every request and artisan command, not only auth and broadcasting.
+Browsers: ably-js 1.x still connects to `realtime.ably.io` / `*.ably-realtime.com`, which DNS now points (CNAME) at the new domains. Allowlists that match on resolved names or addresses need the new domains too.
+
+## Upgrading to 1.1
+Version 1.1 moves from `ably/ably-php` 1.x to [`ably/pubsub-server`](https://github.com/ably/ably-pubsub-php) 2.x, whose clients declare the server side as monthly-active-user pricing requires. The documented `config/broadcasting.php` options keep working unchanged; check the points below.
+1. **Network / firewall first:** allow the new hosts listed in [Network requirements](#network-requirements). With `sync_server_time` enabled, blocked hosts make the whole app fail, not only broadcasting.
+2. Update: `composer update ably/laravel-broadcaster`. Add `-W` only if `rybakit/msgpack` 0.10/0.11 is locked (`ably/pubsub-server` currently constrains it to 0.9.x); `composer why-not ably/laravel-broadcaster 1.1.0` shows what blocks the update.
+3. If you construct `AblyBroadcaster` yourself, pass a client created with `\Ably\PubSub\Server::createHttpClient()`; any other value throws `InvalidArgumentException`.
+4. If you reference `Ably\…` SDK classes (e.g. in a subclass), rename them to `Ably\PubSub\…`. For example, `buildAblyMessage()` overrides must return `Ably\PubSub\Models\Message`, and `Utils::decodeSocketId()` throws `Ably\PubSub\Exceptions\AblyException` (`broadcast()` still throws `BroadcastException`).
+5. `ably/ably-php` is no longer installed for you. Require `ably/ably-php:^1.1` yourself if you use `Ably\AblyRest` directly. Do not bump `ably/ably-php` to 2.x; this package declares a conflict with it.
+6. Make sure this package's service provider is registered (package discovery does it by default). If it is not, Laravel's built-in `ably` driver is used, and that driver needs `Ably\AblyRest`.
+7. Client side: `broadcast(...)->toOthers()` needs `@ably/laravel-echo` >= 1.0.6, and ably-js <= 1.2.35 is sunset (`npm install ably@^1.2.36`, then rebuild assets).
+8. Restart queue workers, Horizon and Octane after deploying.
+
 
 <a name="migrate-pusher-to-ably"></a>
 ## Migrating from pusher/pusher-compatible broadcasters
@@ -247,7 +272,7 @@ Please see [CHANGELOG](CHANGELOG.md) for more information what has changed recen
 ## Release Process
 This library uses [semantic versioning](http://semver.org/). For each release, the following needs to be done:
 
-1. Create a new branch for the release, named like `release/1.0.6` (where `1.0.6` is what you're releasing, being the new version).
+1. Create a new branch for the release, named like `release/1.1.0` (where `1.1.0` is what you're releasing, being the new version). Critical fixes for 1.0.x go to the `1.0.x` branch.
 2. Update the lib version in `src/AblyBroadcaster.php`.
 3. Run [`github_changelog_generator`](https://github.com/github-changelog-generator/github-changelog-generator) to automate the update of the [CHANGELOG.md](CHANGELOG.md). This may require some manual intervention, both in terms of how the command is run and how the change log file is modified. Your mileage may vary:
   - The command you will need to run will look something like this: `github_changelog_generator -u ably -p laravel-broadcaster --since-tag v1.0.6 --output delta.md --token $GITHUB_TOKEN_WITH_REPO_ACCESS`. Generate token [here](https://github.com/settings/tokens/new?description=GitHub%20Changelog%20Generator%20token).
