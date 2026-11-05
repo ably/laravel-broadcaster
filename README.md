@@ -108,7 +108,7 @@ Ably accounts with monthly-active-user (MAU) pricing only accept identified clie
 
 `ABLY_MAU_ACCOUNT` issues guest clientIds to unauthenticated users. It is required on MAU-billed accounts, and it may be enabled on other accounts too. To serve guests on an MAU-billed account:
 - Set `ABLY_MAU_ACCOUNT=true` and add the `mau_account` line to the `ably` connection in `config/broadcasting.php`, see [Configure advanced features](#configure-advanced-features). This package ships no config file, so the line is needed.
-- Unauthenticated clients are then issued a guest clientId instead of `null`: `<prefix><random>.<tag>`, where `<random>` is 22 characters (the base64url encoding of 16 random bytes) and `<tag>` is a 22 character HMAC of it, keyed with your API key secret.
+- Unauthenticated clients are then issued a guest clientId instead of `null`: `<prefix><random>.<tag>`, where `<random>` is 22 characters (the base64url encoding of 16 random bytes) and `<tag>` is a 22 character HMAC of it, keyed with your API key secret. Rotating `ABLY_KEY` invalidates the tags. Guests on routes without a session then get a new id once; ids kept in the session are unaffected.
 - The prefix defaults to `guest:` and can be changed with `ABLY_GUEST_ID_PREFIX`. It is cosmetic and **not reserved**: the broadcaster recognises the guest ids it issued by their tag alone, so a real user id that starts with `guest:` is legal and unaffected. The prefix is only used when `ABLY_MAU_ACCOUNT=true`.
 - The guest id is stable for the session, so one visitor is one MAU. A guest gets a new id after logout.
 - Guests can still only use public channels; private and presence channels require a signed-in user.
@@ -211,7 +211,7 @@ Ably accounts with monthly-active-user (MAU) pricing only accept identified clie
 - Any other key in the `ably` connection config is passed through to `Ably\PubSub\Server::createHttpClient()` as an Ably client option, see the [client options of the SDK](https://github.com/ably/ably-pubsub-php).
 - `key` is required. A missing or empty `key` fails with Ably error 40103.
 - `agents` is set by the broadcaster, a value you set is overwritten.
-- Server-side token auth is not supported: the broadcaster always authenticates with its API key. `useTokenAuth` is ignored, and without a `key`, `token`, `authUrl` and `authCallback` fail with Ably error 40103.
+- Server-side token auth is not supported: the broadcaster always authenticates with its API key. `useTokenAuth` is ignored. A config without `key` fails with Ably error 40103, even if `token`, `authUrl` or `authCallback` is set.
 - Option values must be serializable for `php artisan config:cache`, so do not use closures.
 
 ## Network requirements
@@ -233,9 +233,9 @@ Version 1.1 moves from `ably/ably-php` 1.x to [`ably/pubsub-server`](https://git
 5. `ably/ably-php` is no longer installed for you. Require `ably/ably-php:^1.1` yourself if you use `Ably\AblyRest` directly. Do not bump `ably/ably-php` to 2.x; this package declares a conflict with it.
 6. Make sure this package's service provider is registered (package discovery does it by default). If it is not, Laravel's built-in `ably` driver is used, and that driver needs `Ably\AblyRest`.
 7. Client side: `broadcast(...)->toOthers()` needs `@ably/laravel-echo` >= 1.0.6, and ably-js <= 1.2.35 is sunset. For MAU-billed accounts, or with `ABLY_MAU_ACCOUNT=true`, use `npm install @ably/laravel-echo@^1.1` (release pending), then rebuild assets.
-8. Add `'mau_account' => env('ABLY_MAU_ACCOUNT', false),` to the `ably` connection in `config/broadcasting.php` (this package ships no config file). On an MAU-billed Ably account set `ABLY_MAU_ACCOUNT=true`, see [MAU-billed Ably accounts](#mau-billed-ably-accounts). It is off by default, and nothing changes for you if you leave it off. **Default changes in 2.0.0:** the default of `ABLY_MAU_ACCOUNT` will change to `true` in 2.0.0. Set it explicitly to keep the current behaviour.
+8. Add `'mau_account' => env('ABLY_MAU_ACCOUNT', false),` (and optionally `'guest_id_prefix' => env('ABLY_GUEST_ID_PREFIX', 'guest:'),`) to the `ably` connection in `config/broadcasting.php` (this package ships no config file). On an MAU-billed Ably account set `ABLY_MAU_ACCOUNT=true`, see [MAU-billed Ably accounts](#mau-billed-ably-accounts). It is off by default, and nothing changes for you if you leave it off. **Default changes in 2.0.0:** the default of `ABLY_MAU_ACCOUNT` will change to `true` in 2.0.0. Set it explicitly to keep the current behaviour.
 9. **Behaviour change:** a token's capabilities are no longer carried over when the clientId changes, e.g. on logout or when another user signs in. The new identity starts with the public channel capability plus the channel being authorized. Capabilities are still carried over when renewing a token for the same clientId.
-10. An empty or missing `key` now always fails with Ably error 40103 and a message naming `key` / `ABLY_KEY`, also when `token`, `authUrl` or `authCallback` is set. The broadcaster needs the API key to sign client tokens. `useTokenAuth` is ignored: the broadcaster always uses basic auth with its API key.
+10. An empty or missing `key` now always fails with Ably error 40103 and a message naming `key` / `ABLY_KEY`, also when `token`, `authUrl` or `authCallback` is set. The broadcaster needs the API key to sign client tokens. `useTokenAuth` is ignored: the broadcaster always uses basic auth with its API key. Basic auth requires TLS, so `tls => false` together with a `key` fails with Ably error 40103.
 11. If you set `environment`, `restHost` or `port` as client options, switch to `endpoint`, see the SDK's [UPDATING.md](https://github.com/ably/ably-pubsub-php/blob/main/UPDATING.md).
 12. Restart queue workers, Horizon and Octane after deploying.
 
