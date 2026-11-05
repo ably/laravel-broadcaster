@@ -223,7 +223,11 @@ class AblyBroadcaster extends Broadcaster
         $serverTimeFn = function () {
             return $this->getServerTime();
         };
-        if ($token && Utils::isJwtValid($token, $serverTimeFn, $this->getPrivateToken())) {
+        $signedClientId = $clientId ? strval($clientId) : null;
+        // Claims are reused only when the presented token belongs to the identity being signed now (null matches null),
+        // otherwise a logout or a user switch would inherit the previous identity's private and presence capabilities.
+        if ($token && Utils::isJwtValid($token, $serverTimeFn, $this->getPrivateToken())
+            && (Utils::parseJwt($token)['payload']['x-ably-clientId'] ?? null) === $signedClientId) {
             $payload = Utils::parseJwt($token)['payload'];
             $iat = $payload['iat'];
             $exp = $payload['exp'];
@@ -238,7 +242,7 @@ class AblyBroadcaster extends Broadcaster
         $claims = [
             'iat' => $iat,
             'exp' => $exp,
-            'x-ably-clientId' => $clientId ? strval($clientId) : null,
+            'x-ably-clientId' => $signedClientId,
             'x-ably-capability' => json_encode($channelClaims),
         ];
 

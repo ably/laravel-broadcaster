@@ -161,7 +161,7 @@ class AblyBroadcasterTest extends TestCase
         self::assertEquals('integer', gettype($payload['exp']));
     }
 
-    public function testShouldHaveUpgradedCapabilitiesForValidToken()
+    public function testShouldHaveUpgradedCapabilitiesForValidTokenOfSameIdentity()
     {
         $token = $this->broadcaster->getSignedToken('private:channel', null, 'user123', $this->guardedChannelCapability);
 
@@ -180,15 +180,56 @@ class AblyBroadcasterTest extends TestCase
         self::assertEquals($expectedCapability, $payload['x-ably-capability']);
         self::assertEquals($iat, $payload['iat']);
         self::assertEquals($exp, $payload['exp']);
+    }
+
+    public function testShouldResetClaimsForValidTokenOfDifferentIdentity()
+    {
+        $now = time();
+        $token = $this->signToken(['public:*' => ['subscribe'], 'private:channel' => ['*']], 'user123', $now - 1000, $now + 1000);
 
         $token = $this->broadcaster->getSignedToken('private:channel3', $token, 'user98', $this->guardedChannelCapability);
-        $parsedToken = Utils::parseJwt($token);
-        $payload = $parsedToken['payload'];
-        $expectedCapability = '{"public:*":["subscribe","history","channel-metadata"],"private:channel":["*"],"private:channel2":["*"],"private:channel3":["*"]}';
+        $payload = Utils::parseJwt($token)['payload'];
+        $expectedCapability = '{"public:*":["subscribe","history","channel-metadata"],"private:channel3":["*"]}';
         self::assertEquals('user98', $payload['x-ably-clientId']);
         self::assertEquals($expectedCapability, $payload['x-ably-capability']);
-        self::assertEquals($iat, $payload['iat']);
-        self::assertEquals($exp, $payload['exp']);
+        self::assertGreaterThanOrEqual($now, $payload['iat']);
+        self::assertEquals($payload['iat'] + 28800, $payload['exp']);
+    }
+
+    public function testShouldResetClaimsWhenIdentityGoesFromNullToUser()
+    {
+        $now = time();
+        $token = $this->signToken(['public:*' => ['subscribe'], 'private:secret' => ['*']], null, $now - 1000, $now + 1000);
+
+        $token = $this->broadcaster->getSignedToken(null, $token, 'user123', $this->guardedChannelCapability);
+        $payload = Utils::parseJwt($token)['payload'];
+        self::assertEquals('user123', $payload['x-ably-clientId']);
+        self::assertEquals('{"public:*":["subscribe","history","channel-metadata"]}', $payload['x-ably-capability']);
+        self::assertGreaterThanOrEqual($now, $payload['iat']);
+    }
+
+    public function testShouldResetClaimsWhenIdentityGoesFromUserToGuest()
+    {
+        $now = time();
+        $token = $this->signToken(['public:*' => ['subscribe'], 'private:secret' => ['*']], 'user123', $now - 1000, $now + 1000);
+
+        $token = $this->broadcaster->getSignedToken(null, $token, null, $this->guardedChannelCapability);
+        $payload = Utils::parseJwt($token)['payload'];
+        self::assertNull($payload['x-ably-clientId']);
+        self::assertEquals('{"public:*":["subscribe","history","channel-metadata"]}', $payload['x-ably-capability']);
+        self::assertGreaterThanOrEqual($now, $payload['iat']);
+    }
+
+    public function testShouldReuseClaimsWhenIdentityStaysNull()
+    {
+        $now = time();
+        $token = $this->signToken(['public:*' => ['subscribe']], null, $now - 1000, $now + 1000);
+
+        $token = $this->broadcaster->getSignedToken(null, $token, null, $this->guardedChannelCapability);
+        $payload = Utils::parseJwt($token)['payload'];
+        self::assertEquals('{"public:*":["subscribe"]}', $payload['x-ably-capability']);
+        self::assertEquals($now - 1000, $payload['iat']);
+        self::assertEquals($now + 1000, $payload['exp']);
     }
 
     public function testAuthSignedToken()
@@ -262,6 +303,30 @@ class AblyBroadcasterTest extends TestCase
 
         $result = $this->broadcaster->formatChannels(['hello']);
         self::assertEquals('public:hello', $result[0]);
+    }
+
+    /**
+     * Signs a token with the test key, with full control over its claims.
+     *
+     * @param  array  $capability
+     * @param  string|null  $clientId
+     * @param  int  $iat
+     * @param  int  $exp
+     * @param  string  $secret
+     * @return string
+     */
+    protected function signToken($capability, $clientId, $iat, $exp, $secret = 'efgh')
+    {
+        return Utils::generateJwt(
+            ['typ' => 'JWT', 'alg' => 'HS256', 'kid' => 'abcd'],
+            [
+                'iat' => $iat,
+                'exp' => $exp,
+                'x-ably-clientId' => $clientId,
+                'x-ably-capability' => json_encode($capability),
+            ],
+            $secret
+        );
     }
 
     /**
