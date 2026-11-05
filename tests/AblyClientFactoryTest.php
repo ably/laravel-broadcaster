@@ -115,6 +115,14 @@ class AblyClientFactoryTest extends TestCase
         }
     }
 
+    public function testUseTokenAuthIsIgnoredSoTheClientUsesBasicAuth()
+    {
+        self::assertArrayNotHasKey('useTokenAuth', AblyClientFactory::clientOptions(['key' => 'abcd:efgh', 'useTokenAuth' => true]));
+
+        $client = AblyClientFactory::make(['key' => 'abcd:efgh', 'useTokenAuth' => true, 'logLevel' => 0]);
+        self::assertTrue($client->auth->isUsingBasicAuth());
+    }
+
     public function testPublishFailureIsWrapped()
     {
         $broadcaster = new AblyBroadcaster(self::client(['httpClass' => HttpErrorMock::class]), []);

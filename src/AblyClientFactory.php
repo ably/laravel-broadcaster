@@ -39,6 +39,10 @@ final class AblyClientFactory
         // Only our own registered identifier. A user-supplied `agents` value is
         // overwritten, exactly as 1.x ignored it (1.x had no `agents` option).
         $config['agents'] = ['laravel-broadcaster' => AblyBroadcaster::LIB_VERSION];
+        // The server client always uses basic auth with the API key: with a key, `useTokenAuth` is the only option that
+        // would switch ably-php to token auth, and a server-side token without a signed `x-ably-clientType: server`
+        // claim is rejected on MAU-billed accounts (error 40167). So it is ignored rather than rejected.
+        unset($config['useTokenAuth']);
 
         return $config;
     }
