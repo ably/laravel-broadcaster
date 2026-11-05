@@ -211,7 +211,7 @@ Ably accounts with monthly-active-user (MAU) pricing only accept identified clie
 - Any other key in the `ably` connection config is passed through to `Ably\PubSub\Server::createHttpClient()` as an Ably client option, see the [client options of the SDK](https://github.com/ably/ably-pubsub-php).
 - `key` is required. A missing or empty `key` fails with Ably error 40103.
 - `agents` is set by the broadcaster, a value you set is overwritten.
-- Server-side token auth is not supported: the broadcaster always authenticates with its API key. `useTokenAuth` is ignored. A config without `key` fails with Ably error 40103, even if `token`, `authUrl` or `authCallback` is set.
+- Server-side token auth is not supported: the broadcaster always authenticates with its API key. `useTokenAuth` is ignored. A config without `key` fails with Ably error 40103, even if `token`, `authUrl` or `authCallback` is set. Basic auth requires TLS, so `tls => false` together with a `key` fails with Ably error 40103.
 - Option values must be serializable for `php artisan config:cache`, so do not use closures.
 
 ## Network requirements
