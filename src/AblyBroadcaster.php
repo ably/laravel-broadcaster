@@ -32,6 +32,30 @@ class AblyBroadcaster extends Broadcaster
     private $tokenExpiry = 28800;
 
     /**
+     * Whether unauthenticated clients are signed a non-null `guest:` clientId (required on MAU-billed Ably accounts).
+     *
+     * @var bool
+     */
+    private $guestClientIdEnabled = false;
+
+    /**
+     * Prefix reserved for guest clientIds, user identifiers must not start with it when guest clientIds are enabled.
+     */
+    const GUEST_CLIENT_ID_PREFIX = 'guest:';
+
+    /**
+     * Session key under which the guest clientId is kept.
+     */
+    const GUEST_CLIENT_ID_SESSION_KEY = 'ably_guest_client_id';
+
+    /**
+     * App-provided guest clientId resolver, see resolveGuestClientIdUsing().
+     *
+     * @var callable|null
+     */
+    protected static $guestClientIdResolver;
+
+    /**
      * Public channel capabilities. By default, all public channels are given subscribe, history and channel-metadata access.
      * Set as per https://ably.com/docs/core-features/authentication#capability-operations.
      *
@@ -81,6 +105,9 @@ class AblyBroadcaster extends Broadcaster
         }
         if (array_key_exists('token_expiry', $config)) {
             $this->tokenExpiry = $config['token_expiry'];
+        }
+        if (array_key_exists('guest_client_id', $config) && $config['guest_client_id']) {
+            $this->guestClientIdEnabled = true;
         }
     }
 
@@ -134,6 +161,13 @@ class AblyBroadcaster extends Broadcaster
             $userId = method_exists($user, 'getAuthIdentifierForBroadcasting')
                 ? $user->getAuthIdentifierForBroadcasting()
                 : $user->getAuthIdentifier();
+            if ($this->guestClientIdEnabled) {
+                $this->assertUserIdIsNotGuestId($userId);
+                if ($request->hasSession()) {
+                    // A signed-in user ends the guest identity, so the next guest (e.g. after logout) gets a fresh id
+                    $request->session()->forget(self::GUEST_CLIENT_ID_SESSION_KEY);
+                }
+            }
         }
         if ($this->isGuardedChannel($channelName)) {
             if (! $user) {
@@ -150,6 +184,10 @@ class AblyBroadcaster extends Broadcaster
             }
         }
 
+        if ($userId === null && $this->guestClientIdEnabled) {
+            $userId = $this->resolveGuestClientId($request, $token);
+        }
+
         try {
             $signedToken = $this->getSignedToken($channelName, $token, $userId, $guardedChannelCapability);
         } catch (\Exception $_) { // excluding exception to avoid exposing private key
@@ -162,6 +200,95 @@ class AblyBroadcaster extends Broadcaster
         }
 
         return $response;
+    }
+
+    /**
+     * Registers a callback that provides the clientId of unauthenticated clients, for apps that need their own scheme.
+     * It receives the request and replaces the built-in session based id. Pass null to remove it.
+     * A callable is kept out of config on purpose, as closures cannot be cached by `config:cache`.
+     *
+     * @param  callable|null  $resolver
+     * @return void
+     */
+    public static function resolveGuestClientIdUsing(?callable $resolver)
+    {
+        static::$guestClientIdResolver = $resolver;
+    }
+
+    /**
+     * Returns the clientId for an unauthenticated client, which is stable per session or per token (one visitor is one MAU).
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  string|null  $token  The token presented by the client, if any
+     * @return string
+     *
+     * @throws \UnexpectedValueException if the app's resolver returns an empty or wildcard clientId
+     */
+    protected function resolveGuestClientId($request, $token)
+    {
+        if (static::$guestClientIdResolver) {
+            $clientId = call_user_func(static::$guestClientIdResolver, $request);
+            $clientId = is_scalar($clientId) ? (string) $clientId : '';
+            if ($clientId === '' || $clientId === '*') {
+                throw new \UnexpectedValueException(
+                    'The resolver registered with AblyBroadcaster::resolveGuestClientIdUsing() must return a non-empty clientId other than "*".'
+                );
+            }
+
+            return $clientId;
+        }
+
+        if ($request->hasSession()) {
+            // get/put rather than remember, as remember is not available on the session of every supported Laravel version
+            $clientId = $request->session()->get(self::GUEST_CLIENT_ID_SESSION_KEY);
+            if (! is_string($clientId) || $clientId === '') {
+                $clientId = $this->newGuestClientId();
+                $request->session()->put(self::GUEST_CLIENT_ID_SESSION_KEY, $clientId);
+            }
+
+            return $clientId;
+        }
+
+        // Stateless route: keep the guest id the page already holds
+        try {
+            if ($token && is_string($token) && Utils::isJwtValid($token, function () {
+                return $this->getServerTime();
+            }, $this->getPrivateToken())) {
+                $clientId = Utils::parseJwt($token)['payload']['x-ably-clientId'] ?? null;
+                if (is_string($clientId) && Str::startsWith($clientId, self::GUEST_CLIENT_ID_PREFIX)) {
+                    return $clientId;
+                }
+            }
+        } catch (\Throwable $_) { // a malformed token is simply not reused
+        }
+
+        return $this->newGuestClientId();
+    }
+
+    /**
+     * @return string `guest:` followed by 22 characters of base64url encoded random bytes (128 bits)
+     */
+    protected function newGuestClientId()
+    {
+        return self::GUEST_CLIENT_ID_PREFIX.Utils::base64urlEncode(random_bytes(16));
+    }
+
+    /**
+     * @param  mixed  $userId
+     * @return void
+     *
+     * @throws \UnexpectedValueException
+     */
+    protected function assertUserIdIsNotGuestId($userId)
+    {
+        if (Str::startsWith(strval($userId), self::GUEST_CLIENT_ID_PREFIX)) {
+            throw new \UnexpectedValueException(sprintf(
+                'The user identifier "%s" starts with "%s", which is reserved for guest clientIds when `guest_client_id` is enabled '
+                .'for the Ably broadcaster. Change the identifier returned by getAuthIdentifierForBroadcasting() or getAuthIdentifier().',
+                $userId,
+                self::GUEST_CLIENT_ID_PREFIX
+            ));
+        }
     }
 
     /**
