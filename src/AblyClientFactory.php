@@ -2,6 +2,7 @@
 
 namespace Ably\LaravelBroadcaster;
 
+use Ably\PubSub\Exceptions\AblyException;
 use Ably\PubSub\PubSubHttpClient;
 use Ably\PubSub\Server;
 
@@ -20,9 +21,13 @@ final class AblyClientFactory
 
     /**
      * Creates a client declaring the server side (Ably-Agent: … ably-pubsub-server).
+     *
+     * @throws AblyException 40103 if the `key` is missing or empty
      */
     public static function make(array $config): PubSubHttpClient
     {
+        self::assertKey($config);
+
         return Server::createHttpClient(self::clientOptions($config));
     }
 
@@ -36,5 +41,23 @@ final class AblyClientFactory
         $config['agents'] = ['laravel-broadcaster' => AblyBroadcaster::LIB_VERSION];
 
         return $config;
+    }
+
+    /**
+     * The broadcaster signs client tokens with the API key, and a server client
+     * authenticated by token would need a signed `x-ably-clientType: server`
+     * claim (error 40167), so the key is always required, whatever else is set.
+     */
+    private static function assertKey(array $config): void
+    {
+        if (! isset($config['key']) || ! is_string($config['key']) || trim($config['key']) === '') {
+            throw new AblyException(
+                'The Ably broadcaster requires the `key` config (the ABLY_KEY environment variable). '
+                .'It signs client tokens with the Ably API key, so server-side token auth '
+                .'(`token`, `authUrl`, `authCallback`) is not supported.',
+                40103,
+                401
+            );
+        }
     }
 }

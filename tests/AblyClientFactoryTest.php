@@ -87,6 +87,34 @@ class AblyClientFactoryTest extends TestCase
         $broadcaster->broadcast(['channel1'], 'evt', ['socket' => 'invalid_socket_id']);
     }
 
+    public function testMissingKeyAlwaysFailsWithClearError()
+    {
+        $withoutKey = [
+            'driver' => 'ably',
+            'logLevel' => 0,
+        ];
+        foreach ([
+            [],
+            ['key' => ''],
+            ['key' => null],
+            ['key' => '  '],
+            ['authUrl' => 'https://example.com/auth'],
+            ['token' => 'some-token'],
+            ['authCallback' => 'strtoupper', 'key' => ''],
+        ] as $extra) {
+            try {
+                AblyClientFactory::make(array_merge($withoutKey, $extra));
+                self::fail('expected AblyException');
+            } catch (AblyException $e) {
+                self::assertSame(40103, $e->getCode());
+                self::assertStringContainsString('`key`', $e->getMessage());
+                self::assertStringContainsString('ABLY_KEY', $e->getMessage());
+                self::assertStringContainsString('signs client tokens with the Ably API key', $e->getMessage());
+                self::assertStringContainsString('`authUrl`', $e->getMessage());
+            }
+        }
+    }
+
     public function testPublishFailureIsWrapped()
     {
         $broadcaster = new AblyBroadcaster(self::client(['httpClass' => HttpErrorMock::class]), []);
