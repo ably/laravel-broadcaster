@@ -499,6 +499,32 @@ class AblyBroadcasterTest extends TestCase
         }
     }
 
+    public function testGuestIdIssuedUnderAnotherPrefixIsNotReused()
+    {
+        $visit = m::mock(AblyBroadcaster::class, [$this->ably, ['mau_account' => true, 'guest_id_prefix' => 'visit:']])->makePartial();
+        $visitResponse = $visit->auth($this->getMockRequestWithSession('public:test', null, null, null));
+        $visitId = $this->guestClientIdFrom($visitResponse);
+        self::assertStringStartsWith('visit:', $visitId);
+
+        // same key, so the tag verifies, but the prefix differs: a session-less request gets a new id
+        $clientId = $this->guestClientIdFrom($this->guestBroadcaster()->auth($this->getMockRequestWithSession('public:test', $visitResponse['token'], null, null)));
+
+        self::assertMatchesRegularExpression(self::GUEST_ID_PATTERN, $clientId);
+        self::assertNotSame($visitId, $clientId);
+    }
+
+    public function testGuestIdTagMatchesAFixedVector()
+    {
+        // HMAC-SHA256('efgh', 'ably-guest:' . random), first 16 bytes, base64url without padding, computed independently
+        $id = 'guest:AAAAAAAAAAAAAAAAAAAAAA.Frvly-6FIwOMDXRwx1ErFw';
+        $now = time();
+        $token = $this->signToken(['public:*' => ['subscribe']], $id, $now - 10, $now + 1000);
+
+        $clientId = $this->guestClientIdFrom($this->guestBroadcaster()->auth($this->getMockRequestWithSession('public:test', $token, null, null)));
+
+        self::assertSame($id, $clientId);
+    }
+
     public function testGuestIdPrefixIsNotUsedWhenMauAccountIsOff()
     {
         $broadcaster = m::mock(AblyBroadcaster::class, [$this->ably, ['guest_id_prefix' => 'visitor-']])->makePartial();
