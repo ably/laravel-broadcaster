@@ -105,7 +105,7 @@ Ably accounts with monthly-active-user (MAU) pricing only accept identified clie
 |---|---|---|
 | 40161 | 401 | A device connection has no clientId (`null`), or the wildcard `*`. This is what an unauthenticated visitor, or a user who has just logged out, gets by default. |
 | 40167 | 401 | A server client authenticates with a token that lacks the signed `x-ably-clientType: server` claim. |
-| 40168 | 400 | The SDK does not declare its side, e.g. `ably` (ably-js) 1.x or 2.x. Use `@ably/pubsub-device` in the browser. |
+| 40168 | 400 | The SDK does not declare its side, e.g. the `ably` (ably-js) package. Use `@ably/pubsub-device` in the browser. |
 
 To serve guests on such an account:
 - Set `ABLY_GUEST_CLIENT_ID=true`, see [Configure advanced features](#configure-advanced-features). Unauthenticated clients are then issued a `guest:<random>` clientId, where `<random>` is 22 characters (the base64url encoding of 16 random bytes), instead of `null`.
@@ -196,7 +196,7 @@ To serve guests on such an account:
         ],
 ```
 - The id is kept in the session as `ably_guest_client_id`. On routes without a session, the id from the still-valid guest token that the client presents is reused, otherwise a new one is generated.
-- To use your own scheme, register a resolver, e.g. in a service provider. It receives the request and must return a non-empty id other than `*`. A closure cannot live in the config file, as it breaks `php artisan config:cache`.
+- To use your own scheme, register a resolver, e.g. in a service provider. It receives the request and must return a non-empty id other than `*`. Keep the `guest:` prefix, so a guest id can never collide with a user id. A closure cannot live in the config file, as it breaks `php artisan config:cache`.
 ```php
   \Ably\LaravelBroadcaster\AblyBroadcaster::resolveGuestClientIdUsing(function ($request) {
       return 'guest:'.$request->cookie('visitor_id');
@@ -218,7 +218,7 @@ If these hosts are blocked, publishing fails with `BroadcastException`. If packe
 each publish can block for about 16 seconds (4 s connect timeout × up to 4 hosts), so check queue job timeouts.
 With `sync_server_time` enabled, the broadcaster requests Ably's server time (`GET /time`) when it is created and its cached value is missing or older than 6 hours (e.g. after a fresh deploy).
 Apps that use `ably` as the default broadcaster and load `routes/channels.php` create the broadcaster while booting, so blocked egress then fails every request and artisan command, not only auth and broadcasting.
-Browsers: ably-js 1.x still connects to `realtime.ably.io` / `*.ably-realtime.com`, which DNS now points (CNAME) at the new domains. Allowlists that match on resolved names or addresses need the new domains too.
+Browsers: legacy ably-js 1.x still connects to `realtime.ably.io` / `*.ably-realtime.com`, which DNS now points (CNAME) at the new domains. Allowlists that match on resolved names or addresses need the new domains too.
 
 ## Upgrading to 1.1
 Version 1.1 moves from `ably/ably-php` 1.x to [`ably/pubsub-server`](https://github.com/ably/ably-pubsub-php) 2.x, whose clients declare the server side as monthly-active-user pricing requires. The documented `config/broadcasting.php` options keep working unchanged; check the points below.
