@@ -309,6 +309,11 @@ class AblyBroadcasterTest extends TestCase
         self::assertEquals('public:hello', $result[0]);
     }
 
+    /**
+     * `guest:` + 22 random characters + `.` + a 22 character HMAC tag.
+     */
+    const GUEST_ID_PATTERN = '/^guest:[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{22}$/';
+
     public function testGuestClientIdIsOffByDefault()
     {
         $response = $this->broadcaster->auth($this->getMockRequestWithoutUserForChannel('public:test', null));
@@ -317,7 +322,7 @@ class AblyBroadcasterTest extends TestCase
         self::assertNull($payload['x-ably-clientId']);
     }
 
-    public function testGuestClientIdOffDoesNotTouchReservedPrefixOrSession()
+    public function testGuestClientIdOffDoesNotTouchSession()
     {
         // The mock request has no hasSession() expectation, so touching the session would fail the test
         $request = $this->getMockRequestWithUserForChannel('public:test', null, 'guest:abc');
@@ -335,7 +340,7 @@ class AblyBroadcasterTest extends TestCase
         $first = $this->guestClientIdFrom($broadcaster->auth($this->getMockRequestWithSession('public:test', null, null, $session)));
         $second = $this->guestClientIdFrom($broadcaster->auth($this->getMockRequestWithSession('public:other', null, null, $session)));
 
-        self::assertMatchesRegularExpression('/^guest:[A-Za-z0-9_-]{22}$/', $first);
+        self::assertMatchesRegularExpression(self::GUEST_ID_PATTERN, $first);
         self::assertSame($first, $second);
         self::assertSame($first, $session->get('ably_guest_client_id'));
 
@@ -349,7 +354,7 @@ class AblyBroadcasterTest extends TestCase
 
         $firstResponse = $broadcaster->auth($this->getMockRequestWithSession('public:test', null, null, null));
         $first = $this->guestClientIdFrom($firstResponse);
-        self::assertMatchesRegularExpression('/^guest:[A-Za-z0-9_-]{22}$/', $first);
+        self::assertMatchesRegularExpression(self::GUEST_ID_PATTERN, $first);
 
         $second = $this->guestClientIdFrom(
             $broadcaster->auth($this->getMockRequestWithSession('public:test', $firstResponse['token'], null, null))
@@ -367,11 +372,14 @@ class AblyBroadcasterTest extends TestCase
         $expired = $this->signToken(['public:*' => ['subscribe']], 'guest:expired', $now - 2000, $now - 1000);
         $forged = $this->signToken(['public:*' => ['subscribe']], 'guest:forged', $now - 1000, $now + 1000, 'wrong');
 
-        foreach ([$expired, $forged] as $token) {
+        // validly signed, but the tag does not match the random part
+        $tampered = $this->signToken(['public:*' => ['subscribe']], 'guest:'.str_repeat('a', 22).'.'.str_repeat('b', 22), $now - 1000, $now + 1000);
+
+        foreach ([$expired, $forged, $tampered] as $token) {
+            $presented = Utils::parseJwt($token)['payload']['x-ably-clientId'];
             $clientId = $this->guestClientIdFrom($broadcaster->auth($this->getMockRequestWithSession('public:test', $token, null, null)));
-            self::assertMatchesRegularExpression('/^guest:[A-Za-z0-9_-]{22}$/', $clientId);
-            self::assertNotSame('guest:expired', $clientId);
-            self::assertNotSame('guest:forged', $clientId);
+            self::assertMatchesRegularExpression(self::GUEST_ID_PATTERN, $clientId);
+            self::assertNotSame($presented, $clientId);
         }
     }
 
@@ -383,7 +391,7 @@ class AblyBroadcasterTest extends TestCase
         $response = $broadcaster->auth($this->getMockRequestWithSession('public:test', $userToken, null, null));
 
         $payload = Utils::parseJwt($response['token'])['payload'];
-        self::assertMatchesRegularExpression('/^guest:[A-Za-z0-9_-]{22}$/', $payload['x-ably-clientId']);
+        self::assertMatchesRegularExpression(self::GUEST_ID_PATTERN, $payload['x-ably-clientId']);
         // user to guest does not carry the user's private capability across
         self::assertEquals('{"public:*":["subscribe","history","channel-metadata"]}', $payload['x-ably-capability']);
     }
@@ -404,7 +412,7 @@ class AblyBroadcasterTest extends TestCase
         self::assertFalse($session->has('ably_guest_client_id'));
 
         $afterLogout = $this->guestClientIdFrom($broadcaster->auth($this->getMockRequestWithSession('public:test', null, null, $session)));
-        self::assertMatchesRegularExpression('/^guest:[A-Za-z0-9_-]{22}$/', $afterLogout);
+        self::assertMatchesRegularExpression(self::GUEST_ID_PATTERN, $afterLogout);
         self::assertNotSame($guestId, $afterLogout);
     }
 
@@ -455,13 +463,49 @@ class AblyBroadcasterTest extends TestCase
         }
     }
 
-    public function testReservedGuestPrefixOnUserIdThrowsConfigurationException()
+    public function testUserIdWithGuestPrefixIsSignedAsIs()
     {
         $broadcaster = $this->guestBroadcaster();
 
-        $this->expectException(\UnexpectedValueException::class);
-        $this->expectExceptionMessage('reserved for guest clientIds');
-        $broadcaster->auth($this->getMockRequestWithSession('public:test', null, $this->mockUser('guest:abc'), null));
+        $response = $broadcaster->auth($this->getMockRequestWithSession('public:test', null, $this->mockUser('guest:1'), $this->newSession()));
+
+        self::assertEquals('guest:1', $this->guestClientIdFrom($response));
+    }
+
+    public function testUserIdWithGuestPrefixIsNotReusedAsGuestIdAfterLogout()
+    {
+        $broadcaster = $this->guestBroadcaster();
+        $userToken = $broadcaster->getSignedToken(null, null, 'guest:abc', $this->guardedChannelCapability);
+
+        // a stateless request after logout presents the user's still-valid token: its id has no valid tag
+        $clientId = $this->guestClientIdFrom($broadcaster->auth($this->getMockRequestWithSession('public:test', $userToken, null, null)));
+
+        self::assertMatchesRegularExpression(self::GUEST_ID_PATTERN, $clientId);
+        self::assertNotSame('guest:abc', $clientId);
+    }
+
+    public function testGuestIdPrefixIsConfigurable()
+    {
+        foreach (['visitor-' => '/^visitor-[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{22}$/', '' => '/^[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{22}$/'] as $prefix => $pattern) {
+            $broadcaster = m::mock(AblyBroadcaster::class, [$this->ably, ['mau_account' => true, 'guest_id_prefix' => $prefix]])->makePartial();
+
+            $firstResponse = $broadcaster->auth($this->getMockRequestWithSession('public:test', null, null, null));
+            $first = $this->guestClientIdFrom($firstResponse);
+            self::assertMatchesRegularExpression($pattern, $first);
+
+            // the tagged id is recognised and reused on a stateless request, whatever the prefix
+            $second = $this->guestClientIdFrom($broadcaster->auth($this->getMockRequestWithSession('public:test', $firstResponse['token'], null, null)));
+            self::assertSame($first, $second);
+        }
+    }
+
+    public function testGuestIdPrefixIsNotUsedWhenMauAccountIsOff()
+    {
+        $broadcaster = m::mock(AblyBroadcaster::class, [$this->ably, ['guest_id_prefix' => 'visitor-']])->makePartial();
+
+        $response = $broadcaster->auth($this->getMockRequestWithoutUserForChannel('public:test', null));
+
+        self::assertNull($this->guestClientIdFrom($response));
     }
 
     public function testGuestStillGetsAccessDeniedOnGuardedChannelsWhenGuestClientIdIsOn()

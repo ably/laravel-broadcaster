@@ -41,9 +41,17 @@ class AblyBroadcaster extends Broadcaster
     private $mauAccount = false;
 
     /**
-     * Prefix reserved for guest clientIds, user identifiers must not start with it when guest clientIds are enabled.
+     * Default cosmetic prefix of guest clientIds (config `guest_id_prefix`, ABLY_GUEST_ID_PREFIX). It is not reserved:
+     * the broadcaster recognises its own guest ids by their HMAC tag, so a user id with the same prefix is unaffected.
      */
     const GUEST_CLIENT_ID_PREFIX = 'guest:';
+
+    /**
+     * Prefix of guest clientIds, used only when `mau_account` is true.
+     *
+     * @var string
+     */
+    private $guestClientIdPrefix = self::GUEST_CLIENT_ID_PREFIX;
 
     /**
      * Session key under which the guest clientId is kept.
@@ -110,6 +118,9 @@ class AblyBroadcaster extends Broadcaster
         }
         // The package ships no config file: apps add these keys to the `ably` connection in config/broadcasting.php
         $this->mauAccount = (bool) ($config['mau_account'] ?? false);
+        if (isset($config['guest_id_prefix']) && is_string($config['guest_id_prefix'])) {
+            $this->guestClientIdPrefix = $config['guest_id_prefix'];
+        }
     }
 
     /**
@@ -162,12 +173,9 @@ class AblyBroadcaster extends Broadcaster
             $userId = method_exists($user, 'getAuthIdentifierForBroadcasting')
                 ? $user->getAuthIdentifierForBroadcasting()
                 : $user->getAuthIdentifier();
-            if ($this->mauAccount) {
-                $this->assertUserIdIsNotGuestId($userId);
-                if ($request->hasSession()) {
-                    // A signed-in user ends the guest identity, so the next guest (e.g. after logout) gets a fresh id
-                    $request->session()->forget(self::GUEST_CLIENT_ID_SESSION_KEY);
-                }
+            if ($this->mauAccount && $request->hasSession()) {
+                // A signed-in user ends the guest identity, so the next guest (e.g. after logout) gets a fresh id
+                $request->session()->forget(self::GUEST_CLIENT_ID_SESSION_KEY);
             }
         }
         if ($this->isGuardedChannel($channelName)) {
@@ -256,7 +264,7 @@ class AblyBroadcaster extends Broadcaster
                 return $this->getServerTime();
             }, $this->getPrivateToken())) {
                 $clientId = Utils::parseJwt($token)['payload']['x-ably-clientId'] ?? null;
-                if (is_string($clientId) && Str::startsWith($clientId, self::GUEST_CLIENT_ID_PREFIX)) {
+                if (is_string($clientId) && $this->isOwnGuestClientId($clientId)) {
                     return $clientId;
                 }
             }
@@ -267,29 +275,43 @@ class AblyBroadcaster extends Broadcaster
     }
 
     /**
-     * @return string `guest:` followed by 22 characters of base64url encoded random bytes (128 bits)
+     * @return string the prefix, 22 characters of base64url encoded random bytes (128 bits), a dot and a 22 character tag
      */
     protected function newGuestClientId()
     {
-        return self::GUEST_CLIENT_ID_PREFIX.Utils::base64urlEncode(random_bytes(16));
+        $random = Utils::base64urlEncode(random_bytes(16));
+
+        return $this->guestClientIdPrefix.$random.'.'.$this->guestClientIdTag($random);
     }
 
     /**
-     * @param  mixed  $userId
-     * @return void
+     * HMAC-SHA256 of the random part, keyed with the API key secret and truncated to 16 bytes (base64url, 22 characters).
      *
-     * @throws \UnexpectedValueException
+     * @param  string  $random
+     * @return string
      */
-    protected function assertUserIdIsNotGuestId($userId)
+    protected function guestClientIdTag($random)
     {
-        if (Str::startsWith(strval($userId), self::GUEST_CLIENT_ID_PREFIX)) {
-            throw new \UnexpectedValueException(sprintf(
-                'The user identifier "%s" starts with "%s", which is reserved for guest clientIds when `mau_account` is enabled '
-                .'for the Ably broadcaster. Change the identifier returned by getAuthIdentifierForBroadcasting() or getAuthIdentifier().',
-                $userId,
-                self::GUEST_CLIENT_ID_PREFIX
-            ));
+        return Utils::base64urlEncode(substr(hash_hmac('sha256', 'ably-guest:'.$random, $this->getPrivateToken(), true), 0, 16));
+    }
+
+    /**
+     * Whether the clientId is a guest id issued by this broadcaster, recognised by its tag rather than its prefix.
+     *
+     * @param  string  $clientId
+     * @return bool
+     */
+    protected function isOwnGuestClientId($clientId)
+    {
+        $prefix = $this->guestClientIdPrefix;
+        if (strncmp($clientId, $prefix, strlen($prefix)) !== 0) {
+            return false;
         }
+        if (! preg_match('/^([A-Za-z0-9_-]{22})\.([A-Za-z0-9_-]{22})$/D', substr($clientId, strlen($prefix)), $matches)) {
+            return false;
+        }
+
+        return hash_equals($this->guestClientIdTag($matches[1]), $matches[2]);
     }
 
     /**
