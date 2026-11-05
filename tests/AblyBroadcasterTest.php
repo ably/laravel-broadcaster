@@ -486,7 +486,7 @@ class AblyBroadcasterTest extends TestCase
      */
     protected function guestBroadcaster()
     {
-        return m::mock(AblyBroadcaster::class, [$this->ably, ['guest_client_id' => true]])->makePartial();
+        return m::mock(AblyBroadcaster::class, [$this->ably, ['mau_account' => true]])->makePartial();
     }
 
     protected function newSession()

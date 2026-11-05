@@ -32,11 +32,13 @@ class AblyBroadcaster extends Broadcaster
     private $tokenExpiry = 28800;
 
     /**
-     * Whether unauthenticated clients are signed a non-null `guest:` clientId (required on MAU-billed Ably accounts).
+     * Config `mau_account` (ABLY_MAU_ACCOUNT). When true, unauthenticated clients get a random guest clientId and
+     * logout switches to a fresh one. Required on MAU-billed Ably accounts, which reject a device connection without
+     * a clientId (Ably error 40161). Other accounts may enable it too.
      *
      * @var bool
      */
-    private $guestClientIdEnabled = false;
+    private $mauAccount = false;
 
     /**
      * Prefix reserved for guest clientIds, user identifiers must not start with it when guest clientIds are enabled.
@@ -106,9 +108,8 @@ class AblyBroadcaster extends Broadcaster
         if (array_key_exists('token_expiry', $config)) {
             $this->tokenExpiry = $config['token_expiry'];
         }
-        if (array_key_exists('guest_client_id', $config) && $config['guest_client_id']) {
-            $this->guestClientIdEnabled = true;
-        }
+        // The package ships no config file: apps add these keys to the `ably` connection in config/broadcasting.php
+        $this->mauAccount = (bool) ($config['mau_account'] ?? false);
     }
 
     /**
@@ -161,7 +162,7 @@ class AblyBroadcaster extends Broadcaster
             $userId = method_exists($user, 'getAuthIdentifierForBroadcasting')
                 ? $user->getAuthIdentifierForBroadcasting()
                 : $user->getAuthIdentifier();
-            if ($this->guestClientIdEnabled) {
+            if ($this->mauAccount) {
                 $this->assertUserIdIsNotGuestId($userId);
                 if ($request->hasSession()) {
                     // A signed-in user ends the guest identity, so the next guest (e.g. after logout) gets a fresh id
@@ -184,7 +185,7 @@ class AblyBroadcaster extends Broadcaster
             }
         }
 
-        if ($userId === null && $this->guestClientIdEnabled) {
+        if ($userId === null && $this->mauAccount) {
             $userId = $this->resolveGuestClientId($request, $token);
         }
 
@@ -283,7 +284,7 @@ class AblyBroadcaster extends Broadcaster
     {
         if (Str::startsWith(strval($userId), self::GUEST_CLIENT_ID_PREFIX)) {
             throw new \UnexpectedValueException(sprintf(
-                'The user identifier "%s" starts with "%s", which is reserved for guest clientIds when `guest_client_id` is enabled '
+                'The user identifier "%s" starts with "%s", which is reserved for guest clientIds when `mau_account` is enabled '
                 .'for the Ably broadcaster. Change the identifier returned by getAuthIdentifierForBroadcasting() or getAuthIdentifier().',
                 $userId,
                 self::GUEST_CLIENT_ID_PREFIX
