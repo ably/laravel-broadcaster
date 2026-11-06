@@ -14,7 +14,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class AblyBroadcaster extends Broadcaster
 {
-    const LIB_VERSION = '1.0.8';
+    const LIB_VERSION = '1.1.0';
 
     /**
      * The Ably Pub/Sub HTTP (REST) client, created with \Ably\PubSub\Server::createHttpClient().
