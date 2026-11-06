@@ -67,19 +67,17 @@ Finally, you are ready to install and configure [Ably Laravel Echo](https://gith
 
 ## Using Laravel Echo on client-side
 
-[Ably Laravel Echo](https://github.com/ably-forks/echo/) is a JavaScript library that makes it painless to subscribe to channels and listen for events broadcast by your server-side broadcasting driver. Ably is maintaining a fork of the official laravel-echo module which allows you to use the official [ably-js SDK](https://github.com/ably/ably-js). In this example, we will also install the official ably package:
+[Ably Laravel Echo](https://github.com/ably-forks/echo/) is a JavaScript library that makes it painless to subscribe to channels and listen for events broadcast by your server-side broadcasting driver. Ably is maintaining a fork of the official laravel-echo module which allows you to use the official [ably-js SDK](https://github.com/ably/ably-js). From 1.1.0 it brings the official Ably device SDK, `@ably/pubsub-device`, as its own dependency, so a single command installs everything:
 ```
-npm install @ably/laravel-echo ably@^1.2.36
+npm install @ably/laravel-echo@^1.1
 ```
-> **Note** - ably-js <= 1.2.35 is sunset. `ably-forks/laravel-echo` is moving to ably-js v2; this section will be updated when that is released.
+`@ably/laravel-echo` >= 1.1.0 (release pending) is required on [MAU-billed Ably accounts](#mau-billed-ably-accounts) and when `ABLY_MAU_ACCOUNT=true`; otherwise the 1.0.x setup keeps working.
 
 Once Echo is installed, you are ready to create a fresh Echo instance in your applications JavaScript. A great place to do this is at the bottom of the `resources/js/bootstrap.js` file that is included with the Laravel framework. By default, an example Echo configuration is already included in this file; however, the default configuration in the `bootstrap.js` file is intended for Pusher. You may copy the configuration below to transition your configuration to Ably.
 
 ```js
 import Echo from '@ably/laravel-echo';
-import * as Ably from 'ably';
 
-window.Ably = Ably;
 window.Echo = new Echo({
     broadcaster: 'ably',
 });
@@ -98,6 +96,27 @@ Once you have uncommented and adjusted the Echo configuration according to your 
 ```shell
 npm run dev
 ```
+
+## MAU-billed Ably accounts
+Ably accounts with monthly-active-user (MAU) pricing only accept identified clients, and only SDKs that declare their side (device or server). Connections that do not meet this are rejected after the socket opens, the client goes to `failed` and does not retry:
+
+| Ably error | Status | When it is returned |
+|---|---|---|
+| 40161 | 401 | A device connection has no clientId (`null`), or the wildcard `*`. This is what an unauthenticated visitor, or a user who has just logged out, gets by default. |
+| 40167 | 401 | A server client authenticates with a token that lacks the signed `x-ably-clientType: server` claim. |
+| 40168 | 400 | The SDK does not declare its side, e.g. the `ably` (ably-js) package. Use `@ably/laravel-echo` >= 1.1.0, which uses `@ably/pubsub-device`. |
+
+`ABLY_MAU_ACCOUNT` issues guest clientIds to unauthenticated users. It is required on MAU-billed accounts, and it may be enabled on other accounts too. To serve guests on an MAU-billed account:
+- Set `ABLY_MAU_ACCOUNT=true` and add the `mau_account` line to the `ably` connection in `config/broadcasting.php`, see [Configure advanced features](#configure-advanced-features). This package ships no config file, so the line is needed.
+- Unauthenticated clients are then issued a guest clientId instead of `null`: `<prefix><random>.<tag>`, where `<random>` is 22 characters (the base64url encoding of 16 random bytes) and `<tag>` is a 22 character HMAC of it, keyed with your API key secret. Rotating `ABLY_KEY` invalidates the tags. Guests on routes without a session then get a new id once; ids kept in the session are unaffected.
+- The prefix defaults to `guest:` and can be changed with `ABLY_GUEST_ID_PREFIX`. It is cosmetic and **not reserved**: the broadcaster recognises the guest ids it issued by their tag alone, so a real user id that starts with `guest:` is legal and unaffected. The prefix is only used when `ABLY_MAU_ACCOUNT=true`.
+- The guest id is stable for the session, so one visitor is one MAU. A guest gets a new id after logout.
+- Guests can still only use public channels; private and presence channels require a signed-in user.
+- Each guest counts as a monthly active user on your Ably account.
+- Logging in without reloading the page (SPA) switches the connection from one non-null clientId to another, which needs `@ably/laravel-echo` >= 1.1.0 (release pending). After an in-page logout, call `Echo.connect()` (or create a new Echo instance) to connect as the new guest at once. Other open tabs switch to the new identity by themselves at their next connection token renewal (within `token_expiry`, 8 hours by default): the user after a login, a fresh guest id after a logout (its private and presence channels then get one 403 each from the broadcaster, as for any guest). This also needs `@ably/laravel-echo` >= 1.1.0. To switch every tab at once, call `Echo.connect()` in each tab, for example from a `BroadcastChannel` message (see the [Ably Laravel Echo README](https://github.com/ably-forks/laravel-echo#readme)). With an older Echo, guests connect, but in-page login breaks, and other open tabs fail with a clientId mismatch (40102) at their next renewal after a login or logout; only a page reload recovers them.
+- With `ABLY_MAU_ACCOUNT` left off on an MAU-billed account, guests fail with 40161, and `@ably/laravel-echo` logs this hint in the browser console: "Your Ably account requires an identified client on every connection (MAU billing), but this guest connected without a clientId. In laravel-broadcaster set ABLY_MAU_ACCOUNT=true (config broadcasting.connections.ably.mau_account) so guests receive a clientId, or only connect Echo for signed-in users."
+- The server-side client must authenticate with the API key (`ABLY_KEY`). Server-side token auth is not supported.
+- **Default changes in 2.0.0.** The default of `ABLY_MAU_ACCOUNT` will change to `true` in 2.0.0. Set it explicitly to keep the current behaviour: `ABLY_MAU_ACCOUNT=false` keeps null guest clientIds, and `ABLY_MAU_ACCOUNT=true` gives guests a random clientId (requires `@ably/laravel-echo` >= 1.1.0).
 
 ## Configure advanced features
 
@@ -164,6 +183,37 @@ npm run dev
         ],
 ```
 
+**5. Issue guest clientIds to unauthenticated users (`ABLY_MAU_ACCOUNT`). Default: false**
+- When enabled, clients without a signed-in user receive a guest clientId (`<prefix><random>.<tag>`, stable per session, a new one after logout) instead of `null`. Required on [MAU-billed Ably accounts](#mau-billed-ably-accounts); other accounts may enable it too. In-page login and logout need `@ably/laravel-echo` >= 1.1.0 (release pending).
+- Set `ABLY_MAU_ACCOUNT` as **true** in **.env** file. Optionally set `ABLY_GUEST_ID_PREFIX` (default `guest:`; cosmetic, not reserved, only used when `ABLY_MAU_ACCOUNT=true`).
+```dotenv
+    ABLY_MAU_ACCOUNT=true
+```
+- Update ably section under `config/broadcasting.php` with the lines below. This package ships no config file, so without them the env variables have no effect (and under `php artisan config:cache`, `env()` is only read through the config file).
+```php
+        'ably' => [
+            'driver' => 'ably',
+            'key' => env('ABLY_KEY'),
+            'mau_account' => env('ABLY_MAU_ACCOUNT', false),
+            'guest_id_prefix' => env('ABLY_GUEST_ID_PREFIX', 'guest:'),
+        ],
+```
+- **Default changes in 2.0.0.** The default of `ABLY_MAU_ACCOUNT` will change to `true` in 2.0.0. Set it explicitly to keep the current behaviour: `ABLY_MAU_ACCOUNT=false` keeps null guest clientIds, and `ABLY_MAU_ACCOUNT=true` gives guests a random clientId (requires `@ably/laravel-echo` >= 1.1.0).
+- The id is kept in the session as `ably_guest_client_id`. On routes without a session, the guest id in the still-valid token that the client presents is reused if its tag verifies; otherwise a new one is generated.
+- To use your own scheme, register a resolver, e.g. in a service provider. It receives the request and must return a non-empty id other than `*`; it is used as returned (no prefix or tag is added). A closure cannot live in the config file, as it breaks `php artisan config:cache`.
+```php
+  \Ably\LaravelBroadcaster\AblyBroadcaster::resolveGuestClientIdUsing(function ($request) {
+      return 'visitor:'.$request->cookie('visitor_id');
+  });
+```
+
+### Ably client options
+- Any other key in the `ably` connection config is passed through to `Ably\PubSub\Server::createHttpClient()` as an Ably client option, see the [client options of the SDK](https://github.com/ably/ably-pubsub-php).
+- `key` is required. A missing or empty `key` fails with Ably error 40103.
+- `agents` is set by the broadcaster, a value you set is overwritten.
+- Server-side token auth is not supported: the broadcaster always authenticates with its API key. `useTokenAuth` is ignored. A config without `key` fails with Ably error 40103, even if `token`, `authUrl` or `authCallback` is set. Basic auth requires TLS, so `tls => false` together with a `key` fails with Ably error 40103.
+- Option values must be serializable for `php artisan config:cache`, so do not use closures.
+
 ## Network requirements
 From 1.1 the broadcaster calls `main.realtime.ably.net` and falls back to `main.[a-e].fallback.ably-realtime.com`
 (1.0.x used `rest.ably.io` and `[a-e].ably-realtime.com`). Allow `*.realtime.ably.net` and `*.fallback.ably-realtime.com`
@@ -172,7 +222,7 @@ If these hosts are blocked, publishing fails with `BroadcastException`. If packe
 each publish can block for about 16 seconds (4 s connect timeout × up to 4 hosts), so check queue job timeouts.
 With `sync_server_time` enabled, the broadcaster requests Ably's server time (`GET /time`) when it is created and its cached value is missing or older than 6 hours (e.g. after a fresh deploy).
 Apps that use `ably` as the default broadcaster and load `routes/channels.php` create the broadcaster while booting, so blocked egress then fails every request and artisan command, not only auth and broadcasting.
-Browsers: ably-js 1.x still connects to `realtime.ably.io` / `*.ably-realtime.com`, which DNS now points (CNAME) at the new domains. Allowlists that match on resolved names or addresses need the new domains too.
+Browsers: legacy ably-js 1.x still connects to `realtime.ably.io` / `*.ably-realtime.com`, which DNS now points (CNAME) at the new domains. Allowlists that match on resolved names or addresses need the new domains too.
 
 ## Upgrading to 1.1
 Version 1.1 moves from `ably/ably-php` 1.x to [`ably/pubsub-server`](https://github.com/ably/ably-pubsub-php) 2.x, whose clients declare the server side as monthly-active-user pricing requires. The documented `config/broadcasting.php` options keep working unchanged; check the points below.
@@ -182,8 +232,12 @@ Version 1.1 moves from `ably/ably-php` 1.x to [`ably/pubsub-server`](https://git
 4. If you reference `Ably\…` SDK classes (e.g. in a subclass), rename them to `Ably\PubSub\…`. For example, `buildAblyMessage()` overrides must return `Ably\PubSub\Models\Message`, and `Utils::decodeSocketId()` throws `Ably\PubSub\Exceptions\AblyException` (`broadcast()` still throws `BroadcastException`).
 5. `ably/ably-php` is no longer installed for you. Require `ably/ably-php:^1.1` yourself if you use `Ably\AblyRest` directly. Do not bump `ably/ably-php` to 2.x; this package declares a conflict with it.
 6. Make sure this package's service provider is registered (package discovery does it by default). If it is not, Laravel's built-in `ably` driver is used, and that driver needs `Ably\AblyRest`.
-7. Client side: `broadcast(...)->toOthers()` needs `@ably/laravel-echo` >= 1.0.6, and ably-js <= 1.2.35 is sunset (`npm install ably@^1.2.36`, then rebuild assets).
-8. Restart queue workers, Horizon and Octane after deploying.
+7. Client side: `broadcast(...)->toOthers()` needs `@ably/laravel-echo` >= 1.0.6, and ably-js <= 1.2.35 is sunset. For MAU-billed accounts, or with `ABLY_MAU_ACCOUNT=true`, use `npm install @ably/laravel-echo@^1.1` (release pending), then rebuild assets.
+8. Add `'mau_account' => env('ABLY_MAU_ACCOUNT', false),` (and optionally `'guest_id_prefix' => env('ABLY_GUEST_ID_PREFIX', 'guest:'),`) to the `ably` connection in `config/broadcasting.php` (this package ships no config file). On an MAU-billed Ably account set `ABLY_MAU_ACCOUNT=true`, see [MAU-billed Ably accounts](#mau-billed-ably-accounts). It is off by default, and nothing changes for you if you leave it off. **Default changes in 2.0.0:** the default of `ABLY_MAU_ACCOUNT` will change to `true` in 2.0.0. Set it explicitly to keep the current behaviour.
+9. **Behaviour change:** a token's capabilities are no longer carried over when the clientId changes, e.g. on logout or when another user signs in. The new identity starts with the public channel capability plus the channel being authorized. Capabilities are still carried over when renewing a token for the same clientId.
+10. An empty or missing `key` now always fails with Ably error 40103 and a message naming `key` / `ABLY_KEY`, also when `token`, `authUrl` or `authCallback` is set. The broadcaster needs the API key to sign client tokens. `useTokenAuth` is ignored: the broadcaster always uses basic auth with its API key. Basic auth requires TLS, so `tls => false` together with a `key` fails with Ably error 40103.
+11. If you set `environment`, `restHost` or `port` as client options, switch to `endpoint`, see the SDK's [UPDATING.md](https://github.com/ably/ably-pubsub-php/blob/main/UPDATING.md).
+12. Restart queue workers, Horizon and Octane after deploying.
 
 
 <a name="migrate-pusher-to-ably"></a>

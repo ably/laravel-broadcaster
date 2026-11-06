@@ -14,7 +14,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class AblyBroadcaster extends Broadcaster
 {
-    const LIB_VERSION = '1.0.8';
+    const LIB_VERSION = '1.1.0';
 
     /**
      * The Ably Pub/Sub HTTP (REST) client, created with \Ably\PubSub\Server::createHttpClient().
@@ -30,6 +30,40 @@ class AblyBroadcaster extends Broadcaster
      * @default 8 hr
      */
     private $tokenExpiry = 28800;
+
+    /**
+     * Config `mau_account` (ABLY_MAU_ACCOUNT). When true, unauthenticated clients get a random guest clientId and
+     * logout switches to a fresh one. Required on MAU-billed Ably accounts, which reject a device connection without
+     * a clientId (Ably error 40161). Other accounts may enable it too.
+     *
+     * @var bool
+     */
+    private $mauAccount = false;
+
+    /**
+     * Default cosmetic prefix of guest clientIds (config `guest_id_prefix`, ABLY_GUEST_ID_PREFIX). It is not reserved:
+     * the broadcaster recognises its own guest ids by their HMAC tag, so a user id with the same prefix is unaffected.
+     */
+    const GUEST_CLIENT_ID_PREFIX = 'guest:';
+
+    /**
+     * Prefix of guest clientIds, used only when `mau_account` is true.
+     *
+     * @var string
+     */
+    private $guestClientIdPrefix = self::GUEST_CLIENT_ID_PREFIX;
+
+    /**
+     * Session key under which the guest clientId is kept.
+     */
+    const GUEST_CLIENT_ID_SESSION_KEY = 'ably_guest_client_id';
+
+    /**
+     * App-provided guest clientId resolver, see resolveGuestClientIdUsing().
+     *
+     * @var callable|null
+     */
+    protected static $guestClientIdResolver;
 
     /**
      * Public channel capabilities. By default, all public channels are given subscribe, history and channel-metadata access.
@@ -81,6 +115,11 @@ class AblyBroadcaster extends Broadcaster
         }
         if (array_key_exists('token_expiry', $config)) {
             $this->tokenExpiry = $config['token_expiry'];
+        }
+        // The package ships no config file: apps add these keys to the `ably` connection in config/broadcasting.php
+        $this->mauAccount = (bool) ($config['mau_account'] ?? false);
+        if (isset($config['guest_id_prefix']) && is_string($config['guest_id_prefix'])) {
+            $this->guestClientIdPrefix = $config['guest_id_prefix'];
         }
     }
 
@@ -134,6 +173,10 @@ class AblyBroadcaster extends Broadcaster
             $userId = method_exists($user, 'getAuthIdentifierForBroadcasting')
                 ? $user->getAuthIdentifierForBroadcasting()
                 : $user->getAuthIdentifier();
+            if ($this->mauAccount && $request->hasSession()) {
+                // A signed-in user ends the guest identity, so the next guest (e.g. after logout) gets a fresh id
+                $request->session()->forget(self::GUEST_CLIENT_ID_SESSION_KEY);
+            }
         }
         if ($this->isGuardedChannel($channelName)) {
             if (! $user) {
@@ -150,6 +193,10 @@ class AblyBroadcaster extends Broadcaster
             }
         }
 
+        if ($userId === null && $this->mauAccount) {
+            $userId = $this->resolveGuestClientId($request, $token);
+        }
+
         try {
             $signedToken = $this->getSignedToken($channelName, $token, $userId, $guardedChannelCapability);
         } catch (\Exception $_) { // excluding exception to avoid exposing private key
@@ -162,6 +209,109 @@ class AblyBroadcaster extends Broadcaster
         }
 
         return $response;
+    }
+
+    /**
+     * Registers a callback that provides the clientId of unauthenticated clients, for apps that need their own scheme.
+     * It receives the request and replaces the built-in session based id. Pass null to remove it.
+     * A callable is kept out of config on purpose, as closures cannot be cached by `config:cache`.
+     *
+     * @param  callable|null  $resolver
+     * @return void
+     */
+    public static function resolveGuestClientIdUsing(?callable $resolver)
+    {
+        static::$guestClientIdResolver = $resolver;
+    }
+
+    /**
+     * Returns the clientId for an unauthenticated client, which is stable per session or per token (one visitor is one MAU).
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  string|null  $token  The token presented by the client, if any
+     * @return string
+     *
+     * @throws \UnexpectedValueException if the app's resolver returns an empty or wildcard clientId
+     */
+    protected function resolveGuestClientId($request, $token)
+    {
+        if (static::$guestClientIdResolver) {
+            $clientId = call_user_func(static::$guestClientIdResolver, $request);
+            $clientId = is_scalar($clientId) ? (string) $clientId : '';
+            if ($clientId === '' || $clientId === '*') {
+                throw new \UnexpectedValueException(
+                    'The resolver registered with AblyBroadcaster::resolveGuestClientIdUsing() must return a non-empty clientId other than "*".'
+                );
+            }
+
+            return $clientId;
+        }
+
+        if ($request->hasSession()) {
+            // get/put rather than remember, as remember is not available on the session of every supported Laravel version
+            $clientId = $request->session()->get(self::GUEST_CLIENT_ID_SESSION_KEY);
+            if (! is_string($clientId) || $clientId === '') {
+                $clientId = $this->newGuestClientId();
+                $request->session()->put(self::GUEST_CLIENT_ID_SESSION_KEY, $clientId);
+            }
+
+            return $clientId;
+        }
+
+        // Stateless route: keep the guest id the page already holds
+        try {
+            if ($token && is_string($token) && Utils::isJwtValid($token, function () {
+                return $this->getServerTime();
+            }, $this->getPrivateToken())) {
+                $clientId = Utils::parseJwt($token)['payload']['x-ably-clientId'] ?? null;
+                if (is_string($clientId) && $this->isOwnGuestClientId($clientId)) {
+                    return $clientId;
+                }
+            }
+        } catch (\Throwable $_) { // a malformed token is simply not reused
+        }
+
+        return $this->newGuestClientId();
+    }
+
+    /**
+     * @return string the prefix, 22 characters of base64url encoded random bytes (128 bits), a dot and a 22 character tag
+     */
+    protected function newGuestClientId()
+    {
+        $random = Utils::base64urlEncode(random_bytes(16));
+
+        return $this->guestClientIdPrefix.$random.'.'.$this->guestClientIdTag($random);
+    }
+
+    /**
+     * HMAC-SHA256 of the random part, keyed with the API key secret and truncated to 16 bytes (base64url, 22 characters).
+     *
+     * @param  string  $random
+     * @return string
+     */
+    protected function guestClientIdTag($random)
+    {
+        return Utils::base64urlEncode(substr(hash_hmac('sha256', 'ably-guest:'.$random, $this->getPrivateToken(), true), 0, 16));
+    }
+
+    /**
+     * Whether the clientId is a guest id issued by this broadcaster, recognised by its tag rather than its prefix.
+     *
+     * @param  string  $clientId
+     * @return bool
+     */
+    protected function isOwnGuestClientId($clientId)
+    {
+        $prefix = $this->guestClientIdPrefix;
+        if (strncmp($clientId, $prefix, strlen($prefix)) !== 0) {
+            return false;
+        }
+        if (! preg_match('/^([A-Za-z0-9_-]{22})\.([A-Za-z0-9_-]{22})$/D', substr($clientId, strlen($prefix)), $matches)) {
+            return false;
+        }
+
+        return hash_equals($this->guestClientIdTag($matches[1]), $matches[2]);
     }
 
     /**
@@ -223,7 +373,11 @@ class AblyBroadcaster extends Broadcaster
         $serverTimeFn = function () {
             return $this->getServerTime();
         };
-        if ($token && Utils::isJwtValid($token, $serverTimeFn, $this->getPrivateToken())) {
+        $signedClientId = $clientId ? strval($clientId) : null;
+        // Claims are reused only when the presented token belongs to the identity being signed now (null matches null),
+        // otherwise a logout or a user switch would inherit the previous identity's private and presence capabilities.
+        if ($token && Utils::isJwtValid($token, $serverTimeFn, $this->getPrivateToken())
+            && (Utils::parseJwt($token)['payload']['x-ably-clientId'] ?? null) === $signedClientId) {
             $payload = Utils::parseJwt($token)['payload'];
             $iat = $payload['iat'];
             $exp = $payload['exp'];
@@ -238,7 +392,7 @@ class AblyBroadcaster extends Broadcaster
         $claims = [
             'iat' => $iat,
             'exp' => $exp,
-            'x-ably-clientId' => $clientId ? strval($clientId) : null,
+            'x-ably-clientId' => $signedClientId,
             'x-ably-capability' => json_encode($channelClaims),
         ];
 
