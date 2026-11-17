@@ -154,6 +154,7 @@ Ably accounts with monthly-active-user (MAU) pricing only accept identified clie
 
 **3. Update token expiry. Default: 28800 seconds (8 hrs)**
 - Default expiry set to 8 hrs in order to reduce CPU workload for auth requests. Check [discussion](https://github.com/ably/laravel-broadcaster/issues/55#issuecomment-2582845145).
+- Connection token renewal now issues a fresh expiry and re-checks private/presence channels against `routes/channels.php`.
 - Set `ABLY_TOKEN_EXPIRY` in **.env** file.
 ```dotenv
     ABLY_TOKEN_EXPIRY=43200

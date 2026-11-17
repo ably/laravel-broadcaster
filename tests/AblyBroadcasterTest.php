@@ -224,16 +224,107 @@ class AblyBroadcasterTest extends TestCase
         self::assertGreaterThanOrEqual($now, $payload['iat']);
     }
 
-    public function testShouldReuseClaimsWhenIdentityStaysNull()
+    public function testShouldRefreshExpiryWhenIdentityStaysNullOnRenewal()
     {
         $now = time();
         $token = $this->signToken(['public:*' => ['subscribe']], null, $now - 1000, $now + 1000);
 
-        $token = $this->broadcaster->getSignedToken(null, $token, null, $this->guardedChannelCapability);
+        $token = $this->broadcaster->getSignedToken(null, $token, null, $this->guardedChannelCapability, []);
         $payload = Utils::parseJwt($token)['payload'];
-        self::assertEquals('{"public:*":["subscribe"]}', $payload['x-ably-capability']);
-        self::assertEquals($now - 1000, $payload['iat']);
-        self::assertEquals($now + 1000, $payload['exp']);
+        self::assertEquals('{"public:*":["subscribe","history","channel-metadata"]}', $payload['x-ably-capability']);
+        self::assertGreaterThanOrEqual($now, $payload['iat']);
+        self::assertEquals($payload['iat'] + 28800, $payload['exp']);
+    }
+
+    public function testRenewalIssuesFreshIatAndExp()
+    {
+        $now = time();
+        $token = $this->signToken(['public:*' => ['subscribe']], 'user123', $now - 1000, $now + 1000);
+
+        $response = $this->broadcaster->auth($this->getMockRequestWithUserForChannel(null, $token, 'user123'));
+        $payload = Utils::parseJwt($response['token'])['payload'];
+        self::assertGreaterThanOrEqual($now, $payload['iat']);
+        self::assertGreaterThan($now + 1000, $payload['exp']);
+        self::assertEquals($payload['iat'] + 28800, $payload['exp']);
+        self::assertEquals('user123', $payload['x-ably-clientId']);
+    }
+
+    public function testRenewalKeepsAuthorisedGuardedChannelsAndDropsRevokedOnes()
+    {
+        $this->broadcaster->channel('keep', function () {
+            return true;
+        });
+        $this->broadcaster->channel('room', function () {
+            return ['id' => 1, 'name' => 'info is not kept'];
+        });
+        $this->broadcaster->channel('revoked', function () {
+            return false;
+        });
+        $this->broadcaster->channel('boom', function () {
+            throw new \RuntimeException('callback failure');
+        });
+        $now = time();
+        $token = $this->signToken([
+            'public:*' => ['subscribe'],
+            'private:keep' => ['*'],
+            'presence:room' => ['*'],
+            'private:revoked' => ['*'],
+            'private:boom' => ['*'],
+        ], 'user123', $now - 1000, $now + 1000);
+
+        $response = $this->broadcaster->auth($this->getMockRequestWithUserForChannel(null, $token, 'user123'));
+        $payload = Utils::parseJwt($response['token'])['payload'];
+        self::assertEquals(
+            '{"public:*":["subscribe","history","channel-metadata"],"private:keep":["*"],"presence:room":["*"]}',
+            $payload['x-ably-capability']
+        );
+        self::assertGreaterThan($now + 1000, $payload['exp']);
+        self::assertArrayNotHasKey('info', $response);
+    }
+
+    public function testRenewalHonoursCallbackReturnedCapability()
+    {
+        $this->broadcaster->channel('custom', function () {
+            return ['ably-capability' => ['subscribe', 'history'], 'id' => 1];
+        });
+        $now = time();
+        $token = $this->signToken(['public:*' => ['subscribe'], 'private:custom' => ['*']], 'user123', $now - 1000, $now + 1000);
+
+        $response = $this->broadcaster->auth($this->getMockRequestWithUserForChannel(null, $token, 'user123'));
+        $payload = Utils::parseJwt($response['token'])['payload'];
+        self::assertEquals(
+            '{"public:*":["subscribe","history","channel-metadata"],"private:custom":["subscribe","history"]}',
+            $payload['x-ably-capability']
+        );
+    }
+
+    public function testGuestRenewalRefreshesPublicOnlyClaims()
+    {
+        $broadcaster = $this->guestBroadcaster();
+        $session = $this->newSession();
+        $now = time();
+        $guestId = $this->guestClientIdFrom($broadcaster->auth($this->getMockRequestWithSession(null, null, null, $session)));
+        $token = $this->signToken(['public:*' => ['subscribe'], 'private:secret' => ['*']], $guestId, $now - 1000, $now + 1000);
+
+        $response = $broadcaster->auth($this->getMockRequestWithSession(null, $token, null, $session));
+        $payload = Utils::parseJwt($response['token'])['payload'];
+        self::assertEquals($guestId, $payload['x-ably-clientId']);
+        self::assertEquals('{"public:*":["subscribe","history","channel-metadata"]}', $payload['x-ably-capability']);
+        self::assertGreaterThan($now + 1000, $payload['exp']);
+    }
+
+    public function testRenewalForDifferentClientIdResetsClaims()
+    {
+        $this->broadcaster->channel('keep', function () {
+            return true;
+        });
+        $now = time();
+        $token = $this->signToken(['public:*' => ['subscribe'], 'private:keep' => ['*']], 'user123', $now - 1000, $now + 1000);
+
+        $response = $this->broadcaster->auth($this->getMockRequestWithUserForChannel(null, $token, 'user98'));
+        $payload = Utils::parseJwt($response['token'])['payload'];
+        self::assertEquals('user98', $payload['x-ably-clientId']);
+        self::assertEquals('{"public:*":["subscribe","history","channel-metadata"]}', $payload['x-ably-capability']);
     }
 
     public function testAuthSignedToken()
