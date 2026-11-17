@@ -37,27 +37,47 @@ class Utils
     }
 
     /**
+     * Checks the signature first and only then reads the claims. Never throws: anything that is not a well formed,
+     * correctly signed and unexpired HS256-style token (three parts, `alg` HS256, array header and payload, numeric `exp`) is invalid.
+     *
      * @param  string  $jwt
      * @param  mixed  $timeFn
      * @return bool
      */
     public static function isJwtValid($jwt, $timeFn, $key): bool
     {
-        // split the jwt
-        $tokenParts = explode('.', $jwt);
-        $header = $tokenParts[0];
-        $payload = $tokenParts[1];
-        $tokenSignature = $tokenParts[2];
+        try {
+            if (! is_string($jwt)) {
+                return false;
+            }
+            $tokenParts = explode('.', $jwt);
+            if (count($tokenParts) !== 3) {
+                return false;
+            }
+            [$header, $payload, $tokenSignature] = $tokenParts;
 
-        // check the expiration time - note this will cause an error if there is no 'exp' claim in the jwt
-        $expiration = json_decode(self::base64urlDecode($payload))->exp;
-        $isTokenExpired = $expiration <= $timeFn();
+            // build a signature based on the header and payload using the secret, before trusting any claim
+            $signature = hash_hmac('SHA256', $header.'.'.$payload, $key, true);
+            if (! hash_equals(self::base64urlEncode($signature), $tokenSignature)) {
+                return false;
+            }
 
-        // build a signature based on the header and payload using the secret
-        $signature = hash_hmac('SHA256', $header.'.'.$payload, $key, true);
-        $isSignatureValid = self::base64urlEncode($signature) === $tokenSignature;
+            $decodedHeader = json_decode((string) base64_decode(strtr($header, '-_', '+/'), true), true);
+            $decodedPayload = json_decode((string) base64_decode(strtr($payload, '-_', '+/'), true), true);
+            if (! is_array($decodedHeader) || ! is_array($decodedPayload)) {
+                return false;
+            }
+            if (($decodedHeader['alg'] ?? null) !== 'HS256') { // the only algorithm this package signs with
+                return false;
+            }
+            if (! isset($decodedPayload['exp']) || ! is_numeric($decodedPayload['exp'])) {
+                return false;
+            }
 
-        return $isSignatureValid && ! $isTokenExpired;
+            return $decodedPayload['exp'] > $timeFn();
+        } catch (\Throwable $_) {
+            return false;
+        }
     }
 
     /**

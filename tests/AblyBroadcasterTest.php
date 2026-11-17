@@ -327,6 +327,174 @@ class AblyBroadcasterTest extends TestCase
         self::assertEquals('{"public:*":["subscribe","history","channel-metadata"]}', $payload['x-ably-capability']);
     }
 
+    public function testRenewalWithForgedSignatureResetsClaims()
+    {
+        $this->broadcaster->channel('keep', function () {
+            return true;
+        });
+        $now = time();
+        $token = $this->signToken(['public:*' => ['subscribe'], 'private:keep' => ['*']], 'user123', $now - 1000, $now + 1000, 'wrong-secret');
+
+        $response = $this->broadcaster->auth($this->getMockRequestWithUserForChannel(null, $token, 'user123'));
+        self::assertEquals($this->publicOnlyCapability(), Utils::parseJwt($response['token'])['payload']['x-ably-capability']);
+    }
+
+    public function testRenewalWithAlgNoneHeaderResetsClaims()
+    {
+        $this->broadcaster->channel('keep', function () {
+            return true;
+        });
+        $now = time();
+        $claims = [
+            'iat' => $now - 1000,
+            'exp' => $now + 1000,
+            'x-ably-clientId' => 'user123',
+            'x-ably-capability' => json_encode(['private:keep' => ['*']]),
+        ];
+        $unsigned = Utils::base64urlEncode(json_encode(['typ' => 'JWT', 'alg' => 'none'])).'.'.Utils::base64urlEncode(json_encode($claims)).'.';
+
+        $response = $this->broadcaster->auth($this->getMockRequestWithUserForChannel(null, $unsigned, 'user123'));
+        self::assertEquals($this->publicOnlyCapability(), Utils::parseJwt($response['token'])['payload']['x-ably-capability']);
+    }
+
+    public function testRenewalWithExpiredTokenResetsClaims()
+    {
+        $this->broadcaster->channel('keep', function () {
+            return true;
+        });
+        $now = time();
+        $token = $this->signToken(['public:*' => ['subscribe'], 'private:keep' => ['*']], 'user123', $now - 2000, $now - 1000);
+
+        $response = $this->broadcaster->auth($this->getMockRequestWithUserForChannel(null, $token, 'user123'));
+        $payload = Utils::parseJwt($response['token'])['payload'];
+        self::assertEquals($this->publicOnlyCapability(), $payload['x-ably-capability']);
+        self::assertGreaterThan($now, $payload['exp']);
+    }
+
+    public function testRenewalWithNonHs256AlgHeaderResetsClaims()
+    {
+        $this->broadcaster->channel('keep', function () {
+            return true;
+        });
+        $now = time();
+        $claims = [
+            'iat' => $now - 1000,
+            'exp' => $now + 1000,
+            'x-ably-clientId' => 'user123',
+            'x-ably-capability' => json_encode(['public:*' => ['subscribe'], 'private:keep' => ['*']]),
+        ];
+        foreach (['none', 'RS256'] as $alg) {
+            // correctly HMAC-signed with our key, but not the algorithm this package issues
+            $token = Utils::generateJwt(['typ' => 'JWT', 'alg' => $alg, 'kid' => 'abcd'], $claims, 'efgh');
+            $response = $this->broadcaster->auth($this->getMockRequestWithUserForChannel(null, $token, 'user123'));
+            self::assertEquals($this->publicOnlyCapability(), Utils::parseJwt($response['token'])['payload']['x-ably-capability'], $alg);
+        }
+    }
+
+    public function testRenewalDropsEscalatedPresentedCapability()
+    {
+        // `private:secret` has no callback, `private:*` and `*` do not match any channel pattern
+        $this->broadcaster->channel('mine', function () {
+            return false;
+        });
+        $now = time();
+        $token = $this->signToken([
+            'public:*' => ['publish'],
+            'private:secret' => ['publish'],
+            'private:*' => ['publish'],
+            'private:mine' => ['publish'],
+            '*' => ['publish'],
+        ], 'user123', $now - 1000, $now + 1000);
+
+        $response = $this->broadcaster->auth($this->getMockRequestWithUserForChannel(null, $token, 'user123'));
+        self::assertEquals($this->publicOnlyCapability(), Utils::parseJwt($response['token'])['payload']['x-ably-capability']);
+    }
+
+    public function testRenewalIgnoresPresentedOperations()
+    {
+        $this->broadcaster->channel('a', function () {
+            return true;
+        });
+        $now = time();
+        $token = $this->signToken(['public:*' => ['subscribe'], 'private:a' => ['publish']], 'user123', $now - 1000, $now + 1000);
+
+        $response = $this->broadcaster->auth($this->getMockRequestWithUserForChannel(null, $token, 'user123'));
+        $capability = json_decode(Utils::parseJwt($response['token'])['payload']['x-ably-capability'], true);
+        self::assertEquals(['*'], $capability['private:a']);
+    }
+
+    public function testRenewalDropsNonGuardedInjectedKeys()
+    {
+        $now = time();
+        $token = $this->signToken(['public:*' => ['publish'], 'foo' => ['publish']], 'user123', $now - 1000, $now + 1000);
+
+        $response = $this->broadcaster->auth($this->getMockRequestWithUserForChannel(null, $token, 'user123'));
+        self::assertEquals($this->publicOnlyCapability(), Utils::parseJwt($response['token'])['payload']['x-ably-capability']);
+    }
+
+    public function testRenewalCallbackReturningFalseOrNullDropsChannel()
+    {
+        $this->broadcaster->channel('no', function () {
+            return false;
+        });
+        $this->broadcaster->channel('nothing', function () {
+            return null;
+        });
+        $now = time();
+        $token = $this->signToken(['public:*' => ['subscribe'], 'private:no' => ['*'], 'presence:nothing' => ['*']], 'user123', $now - 1000, $now + 1000);
+
+        $response = $this->broadcaster->auth($this->getMockRequestWithUserForChannel(null, $token, 'user123'));
+        self::assertEquals($this->publicOnlyCapability(), Utils::parseJwt($response['token'])['payload']['x-ably-capability']);
+    }
+
+    public function testRenewalCallbackThrowingDropsChannel()
+    {
+        $this->broadcaster->channel('exception', function () {
+            throw new \RuntimeException('callback failure');
+        });
+        $this->broadcaster->channel('error', function () {
+            throw new \Error('callback error');
+        });
+        $this->broadcaster->channel('keep', function () {
+            return true;
+        });
+        $now = time();
+        $token = $this->signToken([
+            'public:*' => ['subscribe'],
+            'private:exception' => ['*'],
+            'private:error' => ['*'],
+            'private:keep' => ['*'],
+        ], 'user123', $now - 1000, $now + 1000);
+
+        $response = $this->broadcaster->auth($this->getMockRequestWithUserForChannel(null, $token, 'user123'));
+        $capability = json_decode(Utils::parseJwt($response['token'])['payload']['x-ably-capability'], true);
+        self::assertEquals(['public:*', 'private:keep'], array_keys($capability));
+    }
+
+    public function testRenewalMalformedTokenDoesNotError()
+    {
+        foreach (['abc', 'a.b', 'a.b.c', 'a.b.c.d', '..', Utils::base64urlEncode('[]').'.'.Utils::base64urlEncode('[]').'.x'] as $malformed) {
+            $response = $this->broadcaster->auth($this->getMockRequestWithUserForChannel(null, $malformed, 'user123'));
+            $payload = Utils::parseJwt($response['token'])['payload'];
+            self::assertEquals($this->publicOnlyCapability(), $payload['x-ably-capability'], $malformed);
+            self::assertEquals('user123', $payload['x-ably-clientId']);
+        }
+    }
+
+    public function testRenewalNonStringTokenDoesNotError()
+    {
+        foreach ([['x'], ['a' => ['b']], 123, true] as $nonString) {
+            $response = $this->broadcaster->auth($this->getMockRequestWithUserForChannel(null, $nonString, 'user123'));
+            $payload = Utils::parseJwt($response['token'])['payload'];
+            self::assertEquals($this->publicOnlyCapability(), $payload['x-ably-capability']);
+        }
+    }
+
+    protected function publicOnlyCapability()
+    {
+        return '{"public:*":["subscribe","history","channel-metadata"]}';
+    }
+
     public function testAuthSignedToken()
     {
         $this->broadcaster->channel('test1', function () {

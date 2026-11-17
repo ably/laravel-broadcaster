@@ -163,6 +163,9 @@ class AblyBroadcaster extends Broadcaster
     {
         $channelName = $request->channel_name;
         $token = $request->token;
+        if (! is_string($token)) {
+            $token = null; // e.g. `token[]=x`: treated as no token
+        }
         $connectionId = $request->socket_id;
         $userId = null;
         $guardedChannelCapability = ['*']; // guardedChannel is either private or presence channel
@@ -199,7 +202,11 @@ class AblyBroadcaster extends Broadcaster
 
         $renewedChannelClaims = null;
         if (! $channelName) {
-            $renewedChannelClaims = $this->renewedGuardedClaims($request, $token, $userId, $user !== null);
+            try {
+                $renewedChannelClaims = $this->renewedGuardedClaims($request, $token, $userId, $user !== null);
+            } catch (\Throwable $_) { // no stack trace (it holds the signing secret as an argument): reset the claims
+                $renewedChannelClaims = null;
+            }
         }
 
         try {
@@ -394,8 +401,8 @@ class AblyBroadcaster extends Broadcaster
             }
             try {
                 $metaData = parent::verifyUserCanAccessChannel($request, $this->normalizeChannelName($channel));
-            } catch (\Exception $_) {
-                continue; // no longer authorised
+            } catch (\Throwable $_) {
+                continue; // no longer authorised, or the callback failed: fail closed
             }
             $renewed[$channel] = is_array($metaData) && array_key_exists('ably-capability', $metaData)
                 ? $metaData['ably-capability']
