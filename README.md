@@ -155,6 +155,8 @@ Ably accounts with monthly-active-user (MAU) pricing only accept identified clie
 **3. Update token expiry. Default: 28800 seconds (8 hrs)**
 - Default expiry set to 8 hrs in order to reduce CPU workload for auth requests. Check [discussion](https://github.com/ably/laravel-broadcaster/issues/55#issuecomment-2582845145).
 - Connection token renewal now issues a fresh expiry and re-checks private/presence channels against `routes/channels.php`.
+- On connection token renewal, every private/presence channel in the client's current token is re-checked against `routes/channels.php`, so each renewal costs one callback per channel. There is no cap. Consider Laravel's rate limiting on the `/broadcasting/auth` route.
+- **Security note:** channel names containing `*` are Ably wildcards. A channel route such as `chat.{id}` is called with `id = *` for `private:chat.*` (Laravel's `{id}` matches any characters except `.`, including `*`), so make sure your `channels.php` callbacks only authorise the specific channels you intend.
 - Set `ABLY_TOKEN_EXPIRY` in **.env** file.
 ```dotenv
     ABLY_TOKEN_EXPIRY=43200
