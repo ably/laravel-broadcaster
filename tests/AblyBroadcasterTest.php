@@ -513,6 +513,62 @@ class AblyBroadcasterTest extends TestCase
         self::assertNotSame($visitId, $clientId);
     }
 
+    public function testGuestIdInSessionIssuedUnderAnotherPrefixIsReplaced()
+    {
+        $guest = $this->guestBroadcaster();
+        $session = $this->newSession();
+        $oldId = $this->guestClientIdFrom($guest->auth($this->getMockRequestWithSession('public:test', null, null, $session)));
+        self::assertStringStartsWith('guest:', $oldId);
+
+        $visit = m::mock(AblyBroadcaster::class, [$this->ably, ['mau_account' => true, 'guest_id_prefix' => 'visit:']])->makePartial();
+        $newId = $this->guestClientIdFrom($visit->auth($this->getMockRequestWithSession('public:test', null, null, $session)));
+
+        self::assertStringStartsWith('visit:', $newId);
+        self::assertSame($newId, $session->get('ably_guest_client_id'));
+        self::assertSame($newId, $this->guestClientIdFrom($visit->auth($this->getMockRequestWithSession('public:other', null, null, $session))));
+    }
+
+    public function testGuestIdInSessionSignedWithAnotherKeyIsReplaced()
+    {
+        $random = str_repeat('a', 22);
+        $tag = Utils::base64urlEncode(substr(hash_hmac('sha256', 'ably-guest:'.$random, 'rotated', true), 0, 16));
+        $session = $this->newSession();
+        $session->put('ably_guest_client_id', 'guest:'.$random.'.'.$tag);
+
+        $clientId = $this->guestClientIdFrom($this->guestBroadcaster()->auth($this->getMockRequestWithSession('public:test', null, null, $session)));
+
+        self::assertMatchesRegularExpression(self::GUEST_ID_PATTERN, $clientId);
+        self::assertNotSame('guest:'.$random.'.'.$tag, $clientId);
+        self::assertSame($clientId, $session->get('ably_guest_client_id'));
+    }
+
+    public function testGuestIdInSessionThatTheBroadcasterDidNotIssueIsReplaced()
+    {
+        foreach (['user:1', 'guest:abc', 'garbage', 'guest:'.str_repeat('a', 22).'.'.str_repeat('b', 22)] as $stored) {
+            $session = $this->newSession();
+            $session->put('ably_guest_client_id', $stored);
+
+            $clientId = $this->guestClientIdFrom($this->guestBroadcaster()->auth($this->getMockRequestWithSession('public:test', null, null, $session)));
+
+            self::assertMatchesRegularExpression(self::GUEST_ID_PATTERN, $clientId);
+            self::assertNotSame($stored, $clientId);
+            self::assertSame($clientId, $session->get('ably_guest_client_id'));
+        }
+    }
+
+    public function testValidGuestIdInSessionIsReusedUnchanged()
+    {
+        $broadcaster = $this->guestBroadcaster();
+        $session = $this->newSession();
+        $first = $this->guestClientIdFrom($broadcaster->auth($this->getMockRequestWithSession('public:test', null, null, $session)));
+
+        // a fresh broadcaster with the same config accepts the id it would have issued
+        $second = $this->guestClientIdFrom($this->guestBroadcaster()->auth($this->getMockRequestWithSession('public:test', null, null, $session)));
+
+        self::assertSame($first, $second);
+        self::assertSame($first, $session->get('ably_guest_client_id'));
+    }
+
     public function testGuestIdTagMatchesAFixedVector()
     {
         // HMAC-SHA256('efgh', 'ably-guest:' . random), first 16 bytes, base64url without padding, computed independently

@@ -250,7 +250,8 @@ class AblyBroadcaster extends Broadcaster
         if ($request->hasSession()) {
             // get/put rather than remember, as remember is not available on the session of every supported Laravel version
             $clientId = $request->session()->get(self::GUEST_CLIENT_ID_SESSION_KEY);
-            if (! is_string($clientId) || $clientId === '') {
+            // Reuse the stored id only if this broadcaster issued it under the current prefix and key, so a changed prefix or a rotated key applies at the next token request
+            if (! is_string($clientId) || ! $this->isOwnGuestClientId($clientId)) {
                 $clientId = $this->newGuestClientId();
                 $request->session()->put(self::GUEST_CLIENT_ID_SESSION_KEY, $clientId);
             }
