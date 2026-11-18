@@ -374,7 +374,7 @@ class AblyBroadcaster extends Broadcaster
         $serverTimeFn = function () {
             return $this->getServerTime();
         };
-        $signedClientId = $clientId ? strval($clientId) : null;
+        $signedClientId = $clientId !== null && $clientId !== '' ? (string) $clientId : null;
         // Claims are reused only when the presented token belongs to the identity being signed now (null matches null),
         // otherwise a logout or a user switch would inherit the previous identity's private and presence capabilities.
         if ($token && Utils::isJwtValid($token, $serverTimeFn, $this->getPrivateToken())
@@ -507,7 +507,7 @@ class AblyBroadcaster extends Broadcaster
     protected function stringify($channelName, $connectionId, $userId = null)
     {
         $message = 'channel-name:'.$channelName.' ably-connection-id:'.$connectionId;
-        if ($userId) {
+        if ($userId !== null && $userId !== '') {
             return 'user-id:'.$userId.' '.$message;
         }
 

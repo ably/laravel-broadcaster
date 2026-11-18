@@ -434,6 +434,29 @@ class AblyBroadcasterTest extends TestCase
         self::assertStringStartsWith('guest:', $this->guestClientIdFrom($broadcaster->auth($request)));
     }
 
+    public function testGuestClientIdResolverMayReturnZeroString()
+    {
+        $broadcaster = $this->guestBroadcaster();
+        AblyBroadcaster::resolveGuestClientIdUsing(function () {
+            return '0';
+        });
+
+        self::assertSame('0', $this->guestClientIdFrom($broadcaster->auth($this->getMockRequestWithSession('public:test', null, null, $this->newSession()))));
+    }
+
+    public function testUserIdZeroIsSignedAsZeroString()
+    {
+        $broadcaster = $this->guestBroadcaster();
+        $broadcaster->channel('test', function () {
+            return true;
+        });
+
+        foreach ([0, '0'] as $id) {
+            $response = $broadcaster->auth($this->getMockRequestWithSession('private:test', null, $this->mockUser($id), $this->newSession()));
+            self::assertSame('0', Utils::parseJwt($response['token'])['payload']['x-ably-clientId']);
+        }
+    }
+
     public function testGuestClientIdResolverMustNotReturnEmptyOrWildcard()
     {
         $broadcaster = $this->guestBroadcaster();
