@@ -203,9 +203,15 @@ Ably accounts with monthly-active-user (MAU) pricing only accept identified clie
 - To use your own scheme, register a resolver, e.g. in a service provider. It receives the request and must return a non-empty id other than `*`; it is used as returned (no prefix or tag is added). A closure cannot live in the config file, as it breaks `php artisan config:cache`.
 ```php
   \Ably\LaravelBroadcaster\AblyBroadcaster::resolveGuestClientIdUsing(function ($request) {
-      return 'visitor:'.$request->cookie('visitor_id');
+      // Server-side state only: a random id stored in the session, one per visitor
+      if (! $request->session()->has('visitor_id')) {
+          $request->session()->put('visitor_id', 'visitor:'.\Illuminate\Support\Str::random(32));
+      }
+
+      return $request->session()->get('visitor_id');
   });
 ```
+The id must be unique per visitor, because one id is one monthly active user, and must not be taken from client input such as cookies, headers or request parameters, which a client can set to any value, including another visitor's id. This example needs a session on the route.
 
 ### Ably client options
 - Any other key in the `ably` connection config is passed through to `Ably\PubSub\Server::createHttpClient()` as an Ably client option, see the [client options of the SDK](https://github.com/ably/ably-pubsub-php).
