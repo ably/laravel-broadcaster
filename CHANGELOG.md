@@ -17,7 +17,7 @@
 
 - The default of `ABLY_MAU_ACCOUNT` will change to `true` in 2.0.0. Set it explicitly to keep the current behaviour.
 
-See the README "Upgrading to 1.1" section for the upgrade steps.
+Upgrading from 1.0.x? See [UPDATING.md](UPDATING.md).
 
 ## [v1.0.8](https://github.com/ably/laravel-broadcaster/tree/v1.0.8)
 
