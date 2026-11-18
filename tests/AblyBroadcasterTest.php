@@ -490,6 +490,49 @@ class AblyBroadcasterTest extends TestCase
         }
     }
 
+    public function testRenewalKeepsZeroIdForGuestAndUser()
+    {
+        $now = time();
+        $broadcaster = $this->guestBroadcaster();
+        AblyBroadcaster::resolveGuestClientIdUsing(function () {
+            return '0';
+        });
+        $token = $this->signToken(['public:*' => ['subscribe']], '0', $now - 1000, $now + 1000);
+        $response = $broadcaster->auth($this->getMockRequestWithSession(null, $token, null, $this->newSession()));
+        $payload = Utils::parseJwt($response['token'])['payload'];
+        self::assertSame('0', $payload['x-ably-clientId']);
+        self::assertGreaterThan($now + 1000, $payload['exp']);
+
+        $this->broadcaster->channel('keep', function () {
+            return true;
+        });
+        foreach ([0, '0'] as $id) {
+            $token = $this->signToken(['public:*' => ['subscribe'], 'private:keep' => ['*']], '0', $now - 1000, $now + 1000);
+            $response = $this->broadcaster->auth($this->getMockRequestWithUserForChannel(null, $token, $id));
+            $payload = Utils::parseJwt($response['token'])['payload'];
+            self::assertSame('0', $payload['x-ably-clientId']);
+            self::assertGreaterThan($now + 1000, $payload['exp']);
+            self::assertEquals(['public:*', 'private:keep'], array_keys(json_decode($payload['x-ably-capability'], true)));
+        }
+    }
+
+    public function testSignedTokenWithNonStringCapabilityIsHandled()
+    {
+        $now = time();
+        $token = Utils::generateJwt(
+            ['typ' => 'JWT', 'alg' => 'HS256', 'kid' => 'abcd'],
+            ['iat' => $now - 1000, 'exp' => $now + 1000, 'x-ably-clientId' => 'user123', 'x-ably-capability' => ['private:secret' => ['*']]],
+            'efgh'
+        );
+
+        foreach ([null, 'public:test'] as $channel) { // renewal and reuse paths
+            $response = $this->broadcaster->auth($this->getMockRequestWithUserForChannel($channel, $token, 'user123'));
+            $payload = Utils::parseJwt($response['token'])['payload'];
+            self::assertEquals($this->publicOnlyCapability(), $payload['x-ably-capability']);
+            self::assertEquals('user123', $payload['x-ably-clientId']);
+        }
+    }
+
     protected function publicOnlyCapability()
     {
         return '{"public:*":["subscribe","history","channel-metadata"]}';

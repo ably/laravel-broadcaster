@@ -204,8 +204,8 @@ class AblyBroadcaster extends Broadcaster
         if (! $channelName) {
             try {
                 $renewedChannelClaims = $this->renewedGuardedClaims($request, $token, $userId, $user !== null);
-            } catch (\Throwable $_) { // no stack trace (it holds the signing secret as an argument): reset the claims
-                $renewedChannelClaims = null;
+            } catch (\Throwable $_) { // no stack trace (it holds the signing secret as an argument): renew with public claims only
+                $renewedChannelClaims = [];
             }
         }
 
@@ -387,7 +387,7 @@ class AblyBroadcaster extends Broadcaster
             return null;
         }
         $payload = Utils::parseJwt($token)['payload'];
-        if (($payload['x-ably-clientId'] ?? null) !== ($clientId ? strval($clientId) : null)) {
+        if (($payload['x-ably-clientId'] ?? null) !== ($clientId !== null && $clientId !== '' ? (string) $clientId : null)) {
             return null;
         }
         $renewed = [];
@@ -445,7 +445,8 @@ class AblyBroadcaster extends Broadcaster
             $payload = Utils::parseJwt($token)['payload'];
             $iat = $payload['iat'];
             $exp = $payload['exp'];
-            $channelClaims = json_decode($payload['x-ably-capability'], true);
+            $reused = is_string($payload['x-ably-capability'] ?? null) ? json_decode($payload['x-ably-capability'], true) : null;
+            $channelClaims = is_array($reused) ? $reused : $channelClaims;
         } else {
             $iat = $serverTimeFn();
             $exp = $iat + $this->tokenExpiry;
