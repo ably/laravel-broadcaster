@@ -33,12 +33,12 @@ class AblyBroadcaster extends Broadcaster
 
     /**
      * Config `mau_account` (ABLY_MAU_ACCOUNT). When true, unauthenticated clients get a random guest clientId and
-     * logout switches to a fresh one. Required on MAU-billed Ably accounts, which reject a device connection without
+     * logout switches to a fresh one. Some Ably accounts reject a device connection without
      * a clientId (Ably error 40161). Other accounts may enable it too.
      *
      * @var bool
      */
-    private $mauAccount = false;
+    private $shouldGenerateRandomGuestClientId = false;
 
     /**
      * Default cosmetic prefix of guest clientIds (config `guest_id_prefix`, ABLY_GUEST_ID_PREFIX). It is not reserved:
@@ -117,7 +117,7 @@ class AblyBroadcaster extends Broadcaster
             $this->tokenExpiry = $config['token_expiry'];
         }
         // The package ships no config file: apps add these keys to the `ably` connection in config/broadcasting.php
-        $this->mauAccount = (bool) ($config['mau_account'] ?? false);
+        $this->shouldGenerateRandomGuestClientId = (bool) ($config['mau_account'] ?? false);
         if (isset($config['guest_id_prefix']) && is_string($config['guest_id_prefix'])) {
             $this->guestClientIdPrefix = $config['guest_id_prefix'];
         }
@@ -173,7 +173,7 @@ class AblyBroadcaster extends Broadcaster
             $userId = method_exists($user, 'getAuthIdentifierForBroadcasting')
                 ? $user->getAuthIdentifierForBroadcasting()
                 : $user->getAuthIdentifier();
-            if ($this->mauAccount && $request->hasSession()) {
+            if ($this->shouldGenerateRandomGuestClientId && $request->hasSession()) {
                 // A signed-in user ends the guest identity, so the next guest (e.g. after logout) gets a fresh id
                 $request->session()->forget(self::GUEST_CLIENT_ID_SESSION_KEY);
             }
@@ -193,7 +193,7 @@ class AblyBroadcaster extends Broadcaster
             }
         }
 
-        if ($userId === null && $this->mauAccount) {
+        if ($userId === null && $this->shouldGenerateRandomGuestClientId) {
             $userId = $this->resolveGuestClientId($request, $token);
         }
 
@@ -225,7 +225,7 @@ class AblyBroadcaster extends Broadcaster
     }
 
     /**
-     * Returns the clientId for an unauthenticated client, which is stable per session or per token (one visitor is one MAU).
+     * Returns the clientId for an unauthenticated client, which is stable per session or per token (one visitor keeps one guest id).
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  string|null  $token  The token presented by the client, if any

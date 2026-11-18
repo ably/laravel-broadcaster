@@ -7,7 +7,7 @@ namespace Ably\LaravelBroadcaster\Tests;
  */
 class GuestClientIdOffFeatureTest extends GuestClientIdFeatureTestCase
 {
-    protected $mauAccount = false;
+    protected $shouldGenerateRandomGuestClientId = false;
 
     public function testNoGuestIdWhenMauAccountIsOff()
     {

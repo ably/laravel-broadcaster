@@ -41,7 +41,7 @@ final class AblyClientFactory
         $config['agents'] = ['laravel-broadcaster' => AblyBroadcaster::LIB_VERSION];
         // The server client always uses basic auth with the API key: with a key, `useTokenAuth` is the only option that
         // would switch ably-php to token auth, and a server-side token without a signed `x-ably-clientType: server`
-        // claim is rejected on MAU-billed accounts (error 40167). So it is ignored rather than rejected.
+        // claim is rejected on accounts that require a clientId (error 40167). So it is ignored rather than rejected.
         unset($config['useTokenAuth']);
 
         return $config;

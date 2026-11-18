@@ -9,7 +9,7 @@ use Illuminate\Foundation\Auth\User;
  */
 class GuestClientIdFeatureTest extends GuestClientIdFeatureTestCase
 {
-    protected $mauAccount = true;
+    protected $shouldGenerateRandomGuestClientId = true;
 
     public function testGuestIdIsStableAcrossRequestsAndNewAfterLogout()
     {

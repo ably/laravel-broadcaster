@@ -14,7 +14,7 @@ abstract class GuestClientIdFeatureTestCase extends TestCase
     /**
      * @var bool config `mau_account` for the test
      */
-    protected $mauAccount;
+    protected $shouldGenerateRandomGuestClientId;
 
     protected function getPackageProviders($app)
     {
@@ -30,7 +30,7 @@ abstract class GuestClientIdFeatureTestCase extends TestCase
             'key' => 'abcd:efgh',
             'httpClass' => RecordingHttp::class,
             'logLevel' => 0,
-            'mau_account' => $this->mauAccount,
+            'mau_account' => $this->shouldGenerateRandomGuestClientId,
         ]);
     }
 
