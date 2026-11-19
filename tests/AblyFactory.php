@@ -1,21 +1,18 @@
 <?php
 namespace Ably\LaravelBroadcaster\Tests;
 
-use Ably\AblyRest;
-use Ably\LaravelBroadcaster\AblyBroadcaster;
-use Ably\Utils\Miscellaneous;
+use Ably\LaravelBroadcaster\AblyClientFactory;
 
 /**
- * Instantiates AblyRest objects
+ * Instantiates Ably REST clients the same way the service provider does
  */
 class AblyFactory
 {
     /**
-     * Make a new AblyRest client
+     * Make a new Ably REST client
      *
-     * @param array|null $clientOptions Options for the created instance
-     *
-     * @return \Ably\AblyRest
+     * @param  array  $clientOptions  Options for the created instance
+     * @return \Ably\PubSub\PubSubHttpClient
      */
     public function make($clientOptions)
     {
@@ -23,18 +20,15 @@ class AblyFactory
     }
 
     /**
-     * Creates a new AblyRest instance
+     * Creates a new Ably REST client
      *
-     * @param array|null $clientOptions
+     * @param  array  $clientOptions
+     * @return \Ably\PubSub\PubSubHttpClient
      *
-     * @return \Ably\AblyRest
-     * @throws \Ably\Exceptions\AblyException
+     * @throws \Ably\PubSub\Exceptions\AblyException
      */
     protected function createInstance($clientOptions)
     {
-        AblyRest::setAblyAgentHeader('laravel-broadcaster', AblyBroadcaster::LIB_VERSION);
-        $laravelVersion = Miscellaneous::getNumeric(app()->version());
-        AblyRest::setAblyAgentHeader('laravel', $laravelVersion);
-        return new AblyRest($clientOptions);
+        return AblyClientFactory::make($clientOptions);
     }
 }

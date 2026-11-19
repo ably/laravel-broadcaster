@@ -1,5 +1,20 @@
 # Changelog
 
+## [v1.1.0](https://github.com/ably/laravel-broadcaster/tree/v1.1.0)
+
+[Full Changelog](https://github.com/ably/laravel-broadcaster/compare/v1.0.8...v1.1.0)
+
+**Ably SDK upgrade and MAU (monthly active user) support**
+
+- Move to `ably/pubsub-server` ^2.0, replacing `ably/ably-php`. Requires PHP 8.1+ and Laravel 8+. [\#71](https://github.com/ably/laravel-broadcaster/pull/71)
+- Add `ABLY_MAU_ACCOUNT` (`broadcasting.connections.ably.mau_account`, default `false`). When it is on, guests get a stable, HMAC-tagged guest clientId instead of `null`. `ABLY_GUEST_ID_PREFIX` sets the prefix (default `guest:`). [\#72](https://github.com/ably/laravel-broadcaster/pull/72)
+- Security fix: a token's `iat`/`exp`/capability are now reused only for the same clientId, so a new identity no longer inherits the previous user's private and presence channel access. [\#72](https://github.com/ably/laravel-broadcaster/pull/72)
+- The `ABLY_KEY` API key is now required, and `useTokenAuth` is ignored (the server client always uses basic auth). [\#72](https://github.com/ably/laravel-broadcaster/pull/72)
+- Fix: connection token renewal (no channel name) now issues a fresh `iat`/`exp` and re-checks the presented private and presence channels, instead of returning an identical token that Ably kept re-requesting until it disconnected with 40142.
+- **Upgrade `@ably/laravel-echo` to 1.1.0, and rebuild and deploy your assets, before enabling `ABLY_MAU_ACCOUNT`:** with the flag on, in-page login and other open tabs fail with an older Echo.
+
+Upgrading from 1.0.x? See [UPDATING.md](UPDATING.md#10x--110).
+
 ## [v1.0.8](https://github.com/ably/laravel-broadcaster/tree/v1.0.8)
 
 [Full Changelog](https://github.com/ably/laravel-broadcaster/compare/v1.0.7...v1.0.8)
