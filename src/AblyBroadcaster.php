@@ -96,7 +96,7 @@ class AblyBroadcaster extends Broadcaster
         if (! $ably instanceof PubSubHttpClient) {
             throw new \InvalidArgumentException(sprintf(
                 'AblyBroadcaster expects an %s created with Ably\PubSub\Server::createHttpClient(), %s given. '
-                .'See "Upgrading to 1.1" in the ably/laravel-broadcaster README.',
+                .'See "1.0.x → 1.1.0" in UPDATING.md (https://github.com/ably/laravel-broadcaster/blob/HEAD/UPDATING.md).',
                 PubSubHttpClient::class,
                 get_debug_type($ably)
             ));

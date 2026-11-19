@@ -116,7 +116,13 @@ jobs:
         with:
           fetch-depth: 2
           persist-credentials: false
-      - name: "laravel-pint"
-        uses: aglipanci/laravel-pint-action@643466ad03b726047b3c78b531be5ec7835429ff # 1.0.0
+      # Pint is pinned and installed by setup-php: the previous action built from composer:latest,
+      # which lost ext-mbstring and silently fell back to an old Pint that crashes.
+      - name: Set up PHP with Pint
+        uses: shivammathur/setup-php@7c071dfe9dc99bdf297fa79cb49ea005b9fcadbc # 2.37.1
         with:
-          preset: laravel
+          php-version: '8.3'
+          tools: pint:1.32.3
+
+      - name: Run Pint
+        run: pint --preset laravel
