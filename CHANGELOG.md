@@ -10,6 +10,7 @@
 - Add `ABLY_MAU_ACCOUNT` (`broadcasting.connections.ably.mau_account`, default `false`): guests get a stable, HMAC-tagged guest clientId instead of `null`, with the prefix set by `ABLY_GUEST_ID_PREFIX` (default `guest:`). [\#72](https://github.com/ably/laravel-broadcaster/pull/72)
 - Security fix: a token's `iat`/`exp`/capability are now reused only for the same clientId, so a new identity no longer inherits the previous user's private and presence channel access. [\#72](https://github.com/ably/laravel-broadcaster/pull/72)
 - The `ABLY_KEY` API key is now required, and `useTokenAuth` is ignored (the server client always uses basic auth). [\#72](https://github.com/ably/laravel-broadcaster/pull/72)
+- Fix: connection token renewal (no channel name) now issues a fresh `iat`/`exp` and re-checks the presented private and presence channels, instead of returning an identical token that Ably kept re-requesting until it disconnected with 40142.
 - In-page login and other open tabs need `@ably/laravel-echo` >= 1.1.0 when `ABLY_MAU_ACCOUNT` is on. Publish Echo 1.1.0 first or together with this release.
 
 **Deprecated:**

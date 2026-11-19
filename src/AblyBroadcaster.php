@@ -163,6 +163,9 @@ class AblyBroadcaster extends Broadcaster
     {
         $channelName = $request->channel_name;
         $token = $request->token;
+        if (! is_string($token)) {
+            $token = null; // e.g. `token[]=x`: treated as no token
+        }
         $connectionId = $request->socket_id;
         $userId = null;
         $guardedChannelCapability = ['*']; // guardedChannel is either private or presence channel
@@ -197,8 +200,17 @@ class AblyBroadcaster extends Broadcaster
             $userId = $this->resolveGuestClientId($request, $token);
         }
 
+        $renewedChannelClaims = null;
+        if (! $channelName) {
+            try {
+                $renewedChannelClaims = $this->renewedGuardedClaims($request, $token, $userId, $user !== null);
+            } catch (\Throwable $_) { // no stack trace (it holds the signing secret as an argument): renew with public claims only
+                $renewedChannelClaims = [];
+            }
+        }
+
         try {
-            $signedToken = $this->getSignedToken($channelName, $token, $userId, $guardedChannelCapability);
+            $signedToken = $this->getSignedToken($channelName, $token, $userId, $guardedChannelCapability, $renewedChannelClaims);
         } catch (\Exception $_) { // excluding exception to avoid exposing private key
             throw new AccessDeniedHttpException('malformed token, '.$this->stringify($channelName, $connectionId, $userId));
         }
@@ -356,13 +368,60 @@ class AblyBroadcaster extends Broadcaster
     }
 
     /**
+     * On a connection token renewal (no channel name), returns the private and presence claims of the presented token
+     * that the channel callbacks still authorise for the current user, or null when the presented token is not a valid
+     * token of the same identity (the claims are then reset). Denied channels and channels whose callback throws are dropped.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  string|null  $token
+     * @param  string|int|null  $clientId
+     * @param  bool  $hasUser
+     * @return array|null
+     */
+    protected function renewedGuardedClaims($request, $token, $clientId, $hasUser)
+    {
+        $serverTimeFn = function () {
+            return $this->getServerTime();
+        };
+        if (! $token || ! Utils::isJwtValid($token, $serverTimeFn, $this->getPrivateToken())) {
+            return null;
+        }
+        $payload = Utils::parseJwt($token)['payload'];
+        if (($payload['x-ably-clientId'] ?? null) !== ($clientId !== null && $clientId !== '' ? (string) $clientId : null)) {
+            return null;
+        }
+        $renewed = [];
+        $presented = json_decode($payload['x-ably-capability'] ?? '', true);
+        if (! $hasUser || ! is_array($presented)) {
+            return $renewed;
+        }
+        foreach (array_keys($presented) as $channel) {
+            if (! $this->isGuardedChannel($channel)) {
+                continue;
+            }
+            try {
+                $metaData = parent::verifyUserCanAccessChannel($request, $this->normalizeChannelName($channel));
+            } catch (\Throwable $_) {
+                continue; // no longer authorised, or the callback failed: fail closed
+            }
+            $renewed[$channel] = is_array($metaData) && array_key_exists('ably-capability', $metaData)
+                ? $metaData['ably-capability']
+                : ['*'];
+        }
+
+        return $renewed;
+    }
+
+    /**
      * @param  string  $channelName
      * @param  string  $token
      * @param  string  $clientId
      * @param  string[]  $guardedChannelCapability
+     * @param  array|null  $renewedChannelClaims  Re-authorised private and presence claims of a connection token renewal.
+     *                                            When set, the token gets a fresh iat and exp.
      * @return string
      */
-    public function getSignedToken($channelName, $token, $clientId, $guardedChannelCapability)
+    public function getSignedToken($channelName, $token, $clientId, $guardedChannelCapability, $renewedChannelClaims = null)
     {
         $header = [
             'typ' => 'JWT',
@@ -377,12 +436,17 @@ class AblyBroadcaster extends Broadcaster
         $signedClientId = $clientId !== null && $clientId !== '' ? (string) $clientId : null;
         // Claims are reused only when the presented token belongs to the identity being signed now (null matches null),
         // otherwise a logout or a user switch would inherit the previous identity's private and presence capabilities.
-        if ($token && Utils::isJwtValid($token, $serverTimeFn, $this->getPrivateToken())
+        if ($renewedChannelClaims !== null) {
+            $iat = $serverTimeFn();
+            $exp = $iat + $this->tokenExpiry;
+            $channelClaims = array_merge($channelClaims, $renewedChannelClaims);
+        } elseif ($token && Utils::isJwtValid($token, $serverTimeFn, $this->getPrivateToken())
             && (Utils::parseJwt($token)['payload']['x-ably-clientId'] ?? null) === $signedClientId) {
             $payload = Utils::parseJwt($token)['payload'];
             $iat = $payload['iat'];
             $exp = $payload['exp'];
-            $channelClaims = json_decode($payload['x-ably-capability'], true);
+            $reused = is_string($payload['x-ably-capability'] ?? null) ? json_decode($payload['x-ably-capability'], true) : null;
+            $channelClaims = is_array($reused) ? $reused : $channelClaims;
         } else {
             $iat = $serverTimeFn();
             $exp = $iat + $this->tokenExpiry;
