@@ -1,5 +1,23 @@
 # Changelog
 
+## [v1.1.0](https://github.com/ably/laravel-broadcaster/tree/v1.1.0)
+
+[Full Changelog](https://github.com/ably/laravel-broadcaster/compare/v1.0.8...v1.1.0)
+
+**Ably SDK upgrade and MAU (monthly active user) support**
+
+- Move to `ably/pubsub-server` ^2.0, replacing `ably/ably-php`. Requires PHP 8.1+ and Laravel 8+. [\#71](https://github.com/ably/laravel-broadcaster/pull/71)
+- Add `ABLY_MAU_ACCOUNT` (`broadcasting.connections.ably.mau_account`, default `false`): guests get a stable, HMAC-tagged guest clientId instead of `null`, with the prefix set by `ABLY_GUEST_ID_PREFIX` (default `guest:`). [\#72](https://github.com/ably/laravel-broadcaster/pull/72)
+- Security fix: a token's `iat`/`exp`/capability are now reused only for the same clientId, so a new identity no longer inherits the previous user's private and presence channel access. [\#72](https://github.com/ably/laravel-broadcaster/pull/72)
+- The `ABLY_KEY` API key is now required, and `useTokenAuth` is ignored (the server client always uses basic auth). [\#72](https://github.com/ably/laravel-broadcaster/pull/72)
+- In-page login and other open tabs need `@ably/laravel-echo` >= 1.1.0 when `ABLY_MAU_ACCOUNT` is on. Publish Echo 1.1.0 first or together with this release.
+
+**Deprecated:**
+
+- The default of `ABLY_MAU_ACCOUNT` will change to `true` in 2.0.0. Set it explicitly to keep the current behaviour.
+
+See the README "Upgrading to 1.1" section for the upgrade steps.
+
 ## [v1.0.8](https://github.com/ably/laravel-broadcaster/tree/v1.0.8)
 
 [Full Changelog](https://github.com/ably/laravel-broadcaster/compare/v1.0.7...v1.0.8)
