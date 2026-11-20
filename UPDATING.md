@@ -1,17 +1,19 @@
 # Upgrade / Migration Guide
 
-## 1.0.x → 1.1.0
+<a id="10x--110"></a>
 
-Version 1.1.0 moves from `ably/ably-php` 1.x to [`ably/pubsub-server`](https://github.com/ably/ably-pubsub-php) 2.0, whose clients declare the server side as monthly-active-user (MAU) pricing requires. It is a minor release: the documented `config/broadcasting.php` options keep working unchanged, and every new behaviour is off by default except the fixes listed under [Behaviour changes](#behaviour-changes).
+## 1.0.x → 1.1
 
-For the client side (`@ably/laravel-echo`), see the [Echo UPDATING.md](https://github.com/ably-forks/laravel-echo/blob/HEAD/UPDATING.md#install-and-the-ably-global). Use `@ably/laravel-echo` 1.1.0 with this release. It is required before you enable `ABLY_MAU_ACCOUNT`, see [Steps](#steps).
+Version 1.1 moves from `ably/ably-php` 1.x to [`ably/pubsub-server`](https://github.com/ably/ably-pubsub-php) 2.0, whose clients declare the server side as monthly-active-user (MAU) pricing requires. It is a minor release: the documented `config/broadcasting.php` options keep working unchanged, and every new behaviour is off by default except the fixes listed under [Behaviour changes](#behaviour-changes).
+
+For the client side (`@ably/laravel-echo`), see the [Echo UPDATING.md](https://github.com/ably-forks/laravel-echo/blob/HEAD/UPDATING.md#install-and-the-ably-global). Use `@ably/laravel-echo` 1.1 or later with this release. It is required before you enable `ABLY_MAU_ACCOUNT`, see [Steps](#steps).
 
 ### Steps
 
 1. **Network / firewall first:** allow the new hosts, see [Network requirements](#network-requirements).
 2. Update: `composer update ably/laravel-broadcaster`. If your `composer.json` pins `1.0.*` or `~1.0.0` (e.g. after the rollback below), run `composer require ably/laravel-broadcaster:^1.1` instead. Add `-W` only if `rybakit/msgpack` 0.10/0.11 is locked (`ably/pubsub-server` currently constrains it to 0.9.x); `composer why-not ably/laravel-broadcaster 1.1.0` shows what blocks the update.
 3. Keep `ABLY_KEY` set, see [Requirements](#requirements-and-client-options).
-4. Optional: add the new config lines, see [New config keys](#new-config-keys). On an MAU-billed Ably account this is required, see [MAU-billed Ably accounts](#mau-billed-ably-accounts). **Upgrade `@ably/laravel-echo` to 1.1.0, and rebuild and deploy your assets (step 5), before setting `ABLY_MAU_ACCOUNT=true`.**
+4. Optional: add the new config lines, see [New config keys](#new-config-keys). On an MAU-billed Ably account this is required, see [MAU-billed Ably accounts](#mau-billed-ably-accounts). **Upgrade `@ably/laravel-echo` to 1.1 or later, and rebuild and deploy your assets (step 5), before setting `ABLY_MAU_ACCOUNT=true`.**
 5. Client side: run `npm install @ably/laravel-echo@^1.1` and rebuild assets (the `ably` package and `window.Ably` are no longer needed). `broadcast(...)->toOthers()` needs `@ably/laravel-echo` >= 1.0.6, and ably-js <= 1.2.35 is sunset. Installing and building needs Node.js 22 or later, see the [Echo UPDATING.md](https://github.com/ably-forks/laravel-echo/blob/HEAD/UPDATING.md#requirements).
 6. If you construct `AblyBroadcaster` yourself, pass a client created with `\Ably\PubSub\Server::createHttpClient()`; any other value throws `InvalidArgumentException`.
 7. If you reference `Ably\…` SDK classes (e.g. in a subclass), rename them to `Ably\PubSub\…`. `AblyRest` is the exception: it becomes `Ably\PubSub\PubSubHttpClient`, created with `\Ably\PubSub\Server::createHttpClient()` (see step 6). For example, `buildAblyMessage()` overrides must return `Ably\PubSub\Models\Message`, and `Utils::decodeSocketId()` throws `Ably\PubSub\Exceptions\AblyException` (`broadcast()` still throws `BroadcastException`). Rename only code that uses this package's classes or the new SDK. Code that still uses a retained `ably/ably-php` 1.x client (step 8) keeps the `Ably\…` names, including `Ably\Exceptions\AblyException` in its catch blocks.
@@ -58,7 +60,7 @@ Ably accounts with MAU pricing only accept identified clients, and only SDKs tha
 |---|---|---|
 | 40161 | 401 | A device connection has no clientId (`null`), or the wildcard `*`. This is what an unauthenticated visitor, or a user who has just logged out, gets by default. |
 | 40167 | 401 | A server client authenticates with a token that lacks the signed `x-ably-clientType: server` claim. |
-| 40168 | 400 | The SDK does not declare its side, e.g. the `ably` (ably-js) package. Use `@ably/laravel-echo` >= 1.1.0, which uses `@ably/pubsub-device`. |
+| 40168 | 400 | The SDK does not declare its side, e.g. the `ably` (ably-js) package. Use `@ably/laravel-echo` >= 1.1, which uses `@ably/pubsub-device`. |
 
 Version 1.0.x is rejected on MAU-billed accounts. `ABLY_MAU_ACCOUNT` makes the broadcaster issue a guest clientId to each unauthenticated user. It is required on MAU-billed accounts, and you may enable it on other accounts too.
 
@@ -87,7 +89,7 @@ To use your own scheme, register a resolver, for example in a service provider.
 - The resolver receives the request. It must return a non-empty id other than `*`.
 - The broadcaster uses the returned id as-is. It adds no prefix or tag.
 - Ids from a resolver skip the built-in handling (a fresh id after logout, the tag check), so your app must end or replace them on logout.
-- In 1.1.0 the resolver is only called when `mau_account` is `true`.
+- In 1.1 the resolver is only called when `mau_account` is `true`.
 - Do not put a closure in the config file, because it breaks `php artisan config:cache`.
 
 ```php
@@ -105,7 +107,7 @@ The id must be unique per visitor, because one id is one monthly active user. Ne
 
 #### Login without a page reload
 
-Logging in without reloading the page (for example in a single-page app) moves the connection from one clientId to another. This needs `@ably/laravel-echo` 1.1.0 or later. With an older Echo, guests connect, but an in-page login breaks the connection until the page is reloaded. See the [Echo UPDATING.md](https://github.com/ably-forks/laravel-echo/blob/HEAD/UPDATING.md#login-user-switch-and-logout-in-the-same-page) for the client-side steps, and turn the flag on only after Echo 1.1.0 is deployed.
+Logging in without reloading the page (for example in a single-page app) moves the connection from one clientId to another. This needs `@ably/laravel-echo` 1.1 or later. With an older Echo, guests connect, but an in-page login breaks the connection until the page is reloaded. See the [Echo UPDATING.md](https://github.com/ably-forks/laravel-echo/blob/HEAD/UPDATING.md#login-user-switch-and-logout-in-the-same-page) for the client-side steps, and turn the flag on only after Echo 1.1 or later is deployed.
 
 #### Logout without a page reload
 
@@ -113,13 +115,13 @@ After a logout without a page reload, the page keeps the old user's identity and
 
 Your app should therefore call `Echo.connect()` (then subscribe to the channels again) or `Echo.disconnect()` as part of logout. That closes the connection immediately, so the old token is no longer used. See the [Echo UPDATING.md](https://github.com/ably-forks/laravel-echo/blob/HEAD/UPDATING.md#logout-without-a-page-reload) for the client-side steps.
 
-If the app does nothing, Echo 1.1.0 reconnects once as the guest (or with no client ID if `ABLY_MAU_ACCOUNT` is off) at the next token renewal. Public channels keep working, and each private and presence channel reports one 403.
+If the app does nothing, Echo 1.1 reconnects once as the guest (or with no client ID if `ABLY_MAU_ACCOUNT` is off) at the next token renewal. Public channels keep working, and each private and presence channel reports one 403.
 
 A shorter `ABLY_TOKEN_EXPIRY` shortens this window, at the cost of more token requests to your server: each client renews its token more often, and each renewal also re-checks the private and presence channels in the token, see [Behaviour changes](#behaviour-changes). Ably can also revoke a user's tokens by clientId, but this needs an API key with revocable tokens enabled, which limits every token to at most 1 hour (so `ABLY_TOKEN_EXPIRY` must be 3600 or less); see https://ably.com/docs/auth/revocation.
 
 #### Switching users
 
-When another user signs in on the same page, the connection also moves from one clientId to another. This needs `@ably/laravel-echo` 1.1.0 or later. The new user does not inherit the previous user's channels, see [Behaviour changes](#behaviour-changes).
+When another user signs in on the same page, the connection also moves from one clientId to another. This needs `@ably/laravel-echo` 1.1 or later. The new user does not inherit the previous user's channels, see [Behaviour changes](#behaviour-changes).
 
 #### Other open tabs
 
