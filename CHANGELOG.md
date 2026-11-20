@@ -12,7 +12,7 @@ The release also fixes two problems that affect every account. A renewed connect
 
 1.0.x stays available for apps that cannot upgrade yet. It receives critical fixes until about October 2027. It works on accounts without MAU pricing and is rejected on MAU accounts. Composer keeps apps on PHP below 8.1, or on Laravel 6 or 7, on 1.0.x. To stay on it, or to roll back, see [Staying on 1.0.x](UPDATING.md#staying-on-10x).
 
-Please refer to [UPDATING.md](UPDATING.md#10x--110) for the full details and the upgrade steps. Below is an overview of the main changes.
+Please refer to [UPDATING.md](UPDATING.md#10x--11) for the full details and the upgrade steps. Below is an overview of the main changes.
 
 ### Before you upgrade
 

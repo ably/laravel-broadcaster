@@ -36,7 +36,7 @@ You can install the package via composer
 composer require ably/laravel-broadcaster
 ```
 
-> **Upgrading from 1.0.x?** See [UPDATING.md](UPDATING.md#10x--110).
+> **Upgrading from 1.0.x?** See [UPDATING.md](UPDATING.md#10x--11).
 
 ## Setup
 
@@ -73,7 +73,7 @@ Finally, you are ready to install and configure [Ably Laravel Echo](https://gith
 ```
 npm install @ably/laravel-echo@^1.1
 ```
-`@ably/laravel-echo` >= 1.1.0 is required on MAU-billed Ably accounts and when `ABLY_MAU_ACCOUNT=true`; otherwise the 1.0.x setup keeps working. See [UPDATING.md](UPDATING.md#mau-billed-ably-accounts).
+`@ably/laravel-echo` >= 1.1 is required on MAU-billed Ably accounts and when `ABLY_MAU_ACCOUNT=true`; otherwise the 1.0.x setup keeps working. See [UPDATING.md](UPDATING.md#mau-billed-ably-accounts).
 
 Once Echo is installed, you are ready to create a fresh Echo instance in your applications JavaScript. A great place to do this is at the bottom of the `resources/js/bootstrap.js` file that is included with the Laravel framework. By default, an example Echo configuration is already included in this file; however, the default configuration in the `bootstrap.js` file is intended for Pusher. You may copy the configuration below to transition your configuration to Ably.
 
@@ -165,7 +165,7 @@ npm run dev
 ```
 
 **5. Issue guest clientIds to unauthenticated users. Default: false**
-- Required on Ably accounts with monthly-active-user (MAU) pricing, which reject connections without a clientId. Other accounts may enable it too, for example to give guests a stable per-session identity. Enabling it needs `@ably/laravel-echo` >= 1.1.0 (in-page login and logout). See [UPDATING.md](UPDATING.md#mau-billed-ably-accounts) before enabling it.
+- Required on Ably accounts with monthly-active-user (MAU) pricing, which reject connections without a clientId. Other accounts may enable it too, for example to give guests a stable per-session identity. Enabling it needs `@ably/laravel-echo` >= 1.1 (in-page login and logout). See [UPDATING.md](UPDATING.md#mau-billed-ably-accounts) before enabling it.
 - Set `ABLY_MAU_ACCOUNT` as **true** in **.env** file. Optionally set `ABLY_GUEST_ID_PREFIX`.
 ```dotenv
     ABLY_MAU_ACCOUNT=true
@@ -276,7 +276,7 @@ This library uses [semantic versioning](http://semver.org/). For each release, t
 4. Commit generated [CHANGELOG.md](./CHANGELOG.md) file.
 5. Make a PR against `main`.
 6. Once the PR is approved, merge it into `main`.
-7. Add a tag and push it to origin - e.g.: `git tag v1.0.6 && git push origin v1.0.6`. For 1.1.0, publish `@ably/laravel-echo` 1.1.0 first (or together with this release).
+7. Add a tag and push it to origin - e.g.: `git tag v1.0.6 && git push origin v1.0.6`. For 1.1, publish `@ably/laravel-echo` 1.1 first (or together with this release).
 8. Visit https://github.com/ably/laravel-broadcaster/tags and add release notes for the release including links to the changelog entry.
 9. Visit https://packagist.org/packages/ably/laravel-broadcaster, log in to Packagist, and click the "Update" button.
 10. Create the entry on the [Ably Changelog](https://changelog.ably.com/) (via [headwayapp](https://headwayapp.co/))
