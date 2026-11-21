@@ -173,9 +173,7 @@ class AblyBroadcaster extends Broadcaster
         $normalizedChannelName = $this->normalizeChannelName($channelName);
         $user = $this->retrieveUser($request, $normalizedChannelName);
         if ($user) {
-            $userId = method_exists($user, 'getAuthIdentifierForBroadcasting')
-                ? $user->getAuthIdentifierForBroadcasting()
-                : $user->getAuthIdentifier();
+            $userId = $this->broadcastingIdentifier($user);
             if ($this->shouldGenerateRandomGuestClientId && $request->hasSession()) {
                 // A signed-in user ends the guest identity, so the next guest (e.g. after logout) gets a fresh id
                 $request->session()->forget(self::GUEST_CLIENT_ID_SESSION_KEY);
@@ -221,6 +219,19 @@ class AblyBroadcaster extends Broadcaster
         }
 
         return $response;
+    }
+
+    /**
+     * Returns the id of the user as it is used for the clientId of the token.
+     *
+     * @param  mixed  $user
+     * @return string|int|null
+     */
+    protected function broadcastingIdentifier($user)
+    {
+        return method_exists($user, 'getAuthIdentifierForBroadcasting')
+            ? $user->getAuthIdentifierForBroadcasting()
+            : $user->getAuthIdentifier();
     }
 
     /**
@@ -370,7 +381,8 @@ class AblyBroadcaster extends Broadcaster
     /**
      * On a connection token renewal (no channel name), returns the private and presence claims of the presented token
      * that the channel callbacks still authorise for the current user, or null when the presented token is not a valid
-     * token of the same identity (the claims are then reset). Denied channels and channels whose callback throws are dropped.
+     * token of the same identity (the claims are then reset). Denied channels, channels whose callback throws and channels
+     * whose guards do not resolve to the presented token's user are dropped.
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  string|null  $token
@@ -400,7 +412,16 @@ class AblyBroadcaster extends Broadcaster
                 continue;
             }
             try {
-                $metaData = parent::verifyUserCanAccessChannel($request, $this->normalizeChannelName($channel));
+                $normalizedChannel = $this->normalizeChannelName($channel);
+                $channelUser = $this->retrieveUser($request, $normalizedChannel);
+                if (! $channelUser) {
+                    continue;
+                }
+                $channelUserId = $this->broadcastingIdentifier($channelUser);
+                if (($channelUserId !== null && $channelUserId !== '' ? (string) $channelUserId : null) !== ($payload['x-ably-clientId'] ?? null)) {
+                    continue; // the channel's guards resolve to another user than the token's
+                }
+                $metaData = parent::verifyUserCanAccessChannel($request, $normalizedChannel);
             } catch (\Throwable $_) {
                 continue; // no longer authorised, or the callback failed: fail closed
             }
