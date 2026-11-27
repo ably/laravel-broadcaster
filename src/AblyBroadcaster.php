@@ -219,7 +219,8 @@ class AblyBroadcaster extends Broadcaster
 
     /**
      * Registers a callback that provides the clientId of unauthenticated clients (guests), for apps that need their own scheme.
-     * It is called for every guest auth request, never for a signed-in user. It receives the request and its return value
+     * It is called for every guest auth request, never for a signed-in user, unless that user's broadcast identifier is
+     * null, which is treated as a guest. It receives the request and its return value
      * replaces the built-in session based id entirely: `guest_id_prefix` and the HMAC tag are not applied. The id must be
      * non-empty and not `*`, stable across calls for the same visitor (a token renewal re-checks the identity), and
      * namespaced so it cannot equal a real user id. The resolver also decides the id after a logout. Pass null to remove it.
