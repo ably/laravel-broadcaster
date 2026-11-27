@@ -1,5 +1,38 @@
 # Upgrade / Migration Guide
 
+<a id="laravel-built-in-ably-driver"></a>
+
+## Laravel's built-in `ably` driver
+
+This applies to every 1.x install, new or upgraded. Laravel also ships its own `ably` broadcast driver. It speaks the Pusher protocol and is used with the stock `laravel-echo` and `pusher-js` (or set up by `php artisan install:broadcasting --ably`). Once this package is installed, package discovery registers `Ably\LaravelBroadcaster\LaravelAblyBroadcasterServiceProvider`, and every connection in `config/broadcasting.php` with `'driver' => 'ably'` uses this package's broadcaster instead.
+
+### Which connections change
+
+Only connections with `'driver' => 'ably'`. Connections with any other driver are untouched, including the default connection when it is not an `ably` one.
+
+### Move the client in the same deploy
+
+If you already use Laravel's built-in `ably` driver, switch the client to [`@ably/laravel-echo`](https://github.com/ably-forks/laravel-echo) (see [Using Laravel Echo on client-side](README.md#using-laravel-echo-on-client-side)) in the same deploy as this package. A Pusher-protocol client (`laravel-echo` with `pusher-js`) cannot authorize private and presence channels against this broadcaster, and `->toOthers()` fails with a `BroadcastException` because a Pusher socket id is not an `@ably/laravel-echo` socket id; see [Behaviour changes](#behaviour-changes).
+
+### If the provider is not registered
+
+Laravel uses its own built-in `ably` driver instead, which does not work with `@ably/laravel-echo`. This happens when the package is listed in `extra.laravel.dont-discover` in your `composer.json`, when `bootstrap/cache/packages.php` is stale (for example after `composer install --no-scripts`), or when another service provider resolves the broadcaster before this package has booted. On Laravel 13.41 and later it happens silently: Laravel switches to the framework's `Ably2Broadcaster`, which speaks the Pusher protocol, so there is no error, but `@ably/laravel-echo` cannot use it. On earlier versions it fails with an error that mentions `Class "Ably\AblyRest" not found`, unless `ably/ably-php` 1.x is installed, in which case it is silent too.
+
+### How to check
+
+Run `php artisan tinker` and then:
+
+```php
+get_class(Broadcast::connection('ably'));
+// must return "Ably\LaravelBroadcaster\AblyBroadcaster"
+```
+
+If it returns anything else, make sure the package is not in `dont-discover`, then run `php artisan package:discover`.
+
+### `install:broadcasting` on Laravel 11 and later
+
+`php artisan install:broadcasting` publishes the config, creates `routes/channels.php` and registers it in `withRouting` too, but it also writes a Pusher or Reverb client to `resources/js/echo.js` and installs `laravel-echo` and `pusher-js`. If you ran it, replace `resources/js/echo.js` with the Ably Echo setup (see [Using Laravel Echo on client-side](README.md#using-laravel-echo-on-client-side)), and uninstall `laravel-echo` and `pusher-js` if nothing else uses them. Do **not** use `install:broadcasting --ably` (Laravel 12 and later): it sets up Laravel's built-in Pusher-protocol driver and its client.
+
 <a id="10x--110"></a>
 
 ## 1.0.x → 1.1
@@ -21,7 +54,7 @@ For the client side (`@ably/laravel-echo`), see the [Echo UPDATING.md](https://g
     - On an MAU-billed account, migrate those calls to `\Ably\PubSub\Server::createHttpClient()`. Ably rejects ably-php 1.x on MAU-enabled accounts.
     - On other accounts, you may instead require `ably/ably-php:^1.1` yourself.
     - Do not bump `ably/ably-php` to 2.x. This package declares a conflict with it.
-9. Make sure this package's service provider is registered (package discovery does it by default). If it is not, Laravel's built-in `ably` driver is used, and that driver needs `Ably\AblyRest`.
+9. Make sure this package's service provider is registered. Package discovery does it by default; check that the package is not listed in `extra.laravel.dont-discover`. If it is not registered, Laravel's built-in `ably` driver is used instead, and that driver does not work with `@ably/laravel-echo`. See [Laravel's built-in `ably` driver](#laravel-built-in-ably-driver) for what happens on each Laravel version and how to check.
 10. If you set `environment` or `restHost` as client options, switch to `endpoint` (`port` and `tlsPort` still work), see the SDK's [UPDATING.md](https://github.com/ably/ably-pubsub-php/blob/main/UPDATING.md).
 11. Restart queue workers, Horizon and Octane after deploying.
 
@@ -135,6 +168,7 @@ If `ABLY_MAU_ACCOUNT` is left off on an MAU-billed account, guests fail with 401
 
 ### Behaviour changes
 
+- **`->toOthers()` uses the `X-Socket-ID` header that `@ably/laravel-echo` sends.** If the header is absent (the request did not come through Echo), nothing is excluded and the sender receives its own event. There is no error. From 1.1.1 the same applies to the socket id that `@ably/laravel-echo` 1.0.6 to 1.1.1 sends before its connection is up (it has no `connectionKey`). Any other value that is not Echo's base64url JSON, such as a Pusher socket id, makes the broadcast fail with a `BroadcastException`. For apps moving from Laravel's built-in driver, see [Laravel's built-in `ably` driver](#laravel-built-in-ably-driver).
 - **Channel access resets on identity change (always on).** The broadcaster reuses a token's expiry and channel access only for the same clientId. When the clientId changes (for example on logout, or when another user signs in), the new identity starts with public channels plus the channel being authorized. It does not inherit the previous user's private and presence access. A renewal for the same clientId keeps its channel access.
 - **Token renewal issues a fresh expiry.** Before, renewing a connection token (a request with no channel name) for the same user returned the same token again, and Ably kept asking until it disconnected with 40142. Now the renewal gets a fresh expiry (default 28800 s, 8 hours, `ABLY_TOKEN_EXPIRY`). The broadcaster also re-checks each private and presence channel in the old token against `routes/channels.php`, and honours an `ably-capability` that your callback returns. Guests keep public channels only. An expired token cannot be re-checked: its renewal gets public channels only, and Echo re-authorizes private and presence channels as they report 40160.
 - **Revocation takes effect at the next renewal.** A channel the callback no longer authorizes is dropped from the renewed token; a token already issued keeps its access until it expires or is renewed. If a channel's authorization callback throws during a renewal, that channel is also left out of the new token. Echo authorizes it again, and if that fails too, `error()` receives the failure. The app can subscribe again.
