@@ -12,9 +12,9 @@ use Illuminate\Support\Facades\Broadcast;
 abstract class GuestClientIdFeatureTestCase extends TestCase
 {
     /**
-     * @var bool config `mau_account` for the test
+     * @var array extra keys merged into the `ably` connection config for the test
      */
-    protected $shouldGenerateRandomGuestClientId;
+    protected $extraConfig = [];
 
     protected function getPackageProviders($app)
     {
@@ -25,13 +25,12 @@ abstract class GuestClientIdFeatureTestCase extends TestCase
     {
         $app['config']->set('app.key', 'base64:'.base64_encode(str_repeat('k', 32))); // sessions need an encryption key
         $app['config']->set('broadcasting.default', 'ably');
-        $app['config']->set('broadcasting.connections.ably', [
+        $app['config']->set('broadcasting.connections.ably', array_merge([
             'driver' => 'ably',
             'key' => 'abcd:efgh',
             'httpClass' => RecordingHttp::class,
             'logLevel' => 0,
-            'mau_account' => $this->shouldGenerateRandomGuestClientId,
-        ]);
+        ], $this->extraConfig));
     }
 
     protected function setUp(): void

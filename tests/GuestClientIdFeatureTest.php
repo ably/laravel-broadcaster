@@ -5,12 +5,10 @@ namespace Ably\LaravelBroadcaster\Tests;
 use Illuminate\Foundation\Auth\User;
 
 /**
- * `mau_account` true: guests get a session-stable guest clientId, and a fresh one after logout.
+ * Guests always get a session-stable guest clientId, and a fresh one after logout.
  */
 class GuestClientIdFeatureTest extends GuestClientIdFeatureTestCase
 {
-    protected $shouldGenerateRandomGuestClientId = true;
-
     public function testGuestIdIsStableAcrossRequestsAndNewAfterLogout()
     {
         $first = $this->authClientId();

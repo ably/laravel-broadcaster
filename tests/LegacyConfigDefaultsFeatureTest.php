@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\Broadcast;
 
 /**
  * An app upgrading from 1.0.x keeps its config/broadcasting.php, and this package ships no config file, so the
- * `ably` connection has none of the 1.1 keys (`mau_account`, `guest_id_prefix`). Drives the real /broadcasting/auth
- * route with only the 1.0.8 keys and asserts the 1.0.x behaviour: no guest clientId, no prefix, 8 hr expiry.
+ * `ably` connection has none of the newer keys (`guest_id_prefix`). Drives the real /broadcasting/auth route with
+ * only the 1.0.8 keys and asserts the 2.0 defaults: a `guest:` clientId for guests, 8 hr expiry.
  * (`httpClass` and `logLevel` are client options that only keep the test offline.)
  */
 class LegacyConfigDefaultsFeatureTest extends TestCase
@@ -46,11 +46,13 @@ class LegacyConfigDefaultsFeatureTest extends TestCase
         return Utils::parseJwt($response->json('token'))['payload'];
     }
 
-    public function testGuestKeepsNullClientIdAndNoGuestIdIsStored()
+    public function testGuestGetsAStableGuestClientIdWithoutAnyGuestConfig()
     {
-        self::assertNull($this->authPayload()['x-ably-clientId']);
-        self::assertNull($this->authPayload()['x-ably-clientId']);
-        self::assertNull(session('ably_guest_client_id'));
+        $first = $this->authPayload()['x-ably-clientId'];
+
+        self::assertMatchesRegularExpression('/^guest:[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{22}$/', $first);
+        self::assertSame($first, $this->authPayload()['x-ably-clientId']);
+        self::assertSame($first, session('ably_guest_client_id'));
     }
 
     public function testSignedInUserClientIdIsUnchanged()

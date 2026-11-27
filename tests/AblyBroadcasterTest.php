@@ -212,7 +212,7 @@ class AblyBroadcasterTest extends TestCase
         self::assertGreaterThanOrEqual($now, $payload['iat']);
     }
 
-    public function testShouldResetClaimsWhenIdentityGoesFromUserToGuest()
+    public function testShouldResetClaimsWhenIdentityGoesFromUserToNoClientId()
     {
         $now = time();
         $token = $this->signToken(['public:*' => ['subscribe'], 'private:secret' => ['*']], 'user123', $now - 1000, $now + 1000);
@@ -493,7 +493,7 @@ class AblyBroadcasterTest extends TestCase
     public function testRenewalKeepsZeroIdForGuestAndUser()
     {
         $now = time();
-        $broadcaster = $this->guestBroadcaster();
+        $broadcaster = $this->broadcaster;
         AblyBroadcaster::resolveGuestClientIdUsing(function () {
             return '0';
         });
@@ -513,6 +513,31 @@ class AblyBroadcasterTest extends TestCase
             self::assertSame('0', $payload['x-ably-clientId']);
             self::assertGreaterThan($now + 1000, $payload['exp']);
             self::assertEquals(['public:*', 'private:keep'], array_keys(json_decode($payload['x-ably-capability'], true)));
+        }
+    }
+
+    public function testLegacyTokenWithoutClientIdRenewsAsTheNewIdentity()
+    {
+        // A token issued by 1.x to a guest has no clientId. After the upgrade its renewal switches to the new identity:
+        // a guest id or the user id, a fresh expiry, and none of the presented private or presence claims.
+        $this->broadcaster->channel('keep', function () {
+            return true;
+        });
+        $now = time();
+        $legacy = $this->signToken(['public:*' => ['subscribe'], 'private:keep' => ['*']], null, $now - 1000, $now + 1000);
+
+        foreach ([null, $this->mockUser(42)] as $user) {
+            foreach ([$this->newSession(), null] as $session) {
+                $response = $this->broadcaster->auth($this->getMockRequestWithSession(null, $legacy, $user, $session));
+                $payload = Utils::parseJwt($response['token'])['payload'];
+                if ($user) {
+                    self::assertSame('42', $payload['x-ably-clientId']);
+                } else {
+                    self::assertMatchesRegularExpression(self::GUEST_ID_PATTERN, $payload['x-ably-clientId']);
+                }
+                self::assertEquals($this->publicOnlyCapability(), $payload['x-ably-capability']);
+                self::assertGreaterThan($now + 1000, $payload['exp']);
+            }
         }
     }
 
@@ -658,17 +683,17 @@ class AblyBroadcasterTest extends TestCase
      */
     const GUEST_ID_PATTERN = '/^guest:[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{22}$/';
 
-    public function testGuestClientIdIsOffByDefault()
+    public function testGuestClientIdIsAlwaysOn()
     {
         $response = $this->broadcaster->auth($this->getMockRequestWithoutUserForChannel('public:test', null));
 
         $payload = Utils::parseJwt($response['token'])['payload'];
-        self::assertNull($payload['x-ably-clientId']);
+        self::assertMatchesRegularExpression(self::GUEST_ID_PATTERN, $payload['x-ably-clientId']);
     }
 
-    public function testGuestClientIdOffDoesNotTouchSession()
+    public function testAuthenticatedRequestWithoutSessionDoesNotTouchSession()
     {
-        // The mock request has no hasSession() expectation, so touching the session would fail the test
+        // The mock request has no session() expectation, so touching the session would fail the test
         $request = $this->getMockRequestWithUserForChannel('public:test', null, 'guest:abc');
 
         $response = $this->broadcaster->auth($request);
@@ -762,7 +787,7 @@ class AblyBroadcasterTest extends TestCase
 
     public function testGuestClientIdResolverOverridesTheBuiltInId()
     {
-        $broadcaster = $this->guestBroadcaster();
+        $broadcaster = $this->broadcaster;
         $request = $this->getMockRequestWithSession('public:test', null, null, $this->newSession());
         $received = null;
         AblyBroadcaster::resolveGuestClientIdUsing(function ($req) use (&$received) {
@@ -774,13 +799,50 @@ class AblyBroadcasterTest extends TestCase
         self::assertSame('tenant-guest-1', $this->guestClientIdFrom($broadcaster->auth($request)));
         self::assertSame($request, $received);
 
+        // passing null removes the resolver: the built-in guest id is back and the removed resolver is not called
         AblyBroadcaster::resolveGuestClientIdUsing(null);
-        self::assertStringStartsWith('guest:', $this->guestClientIdFrom($broadcaster->auth($request)));
+        $received = null;
+        self::assertMatchesRegularExpression(self::GUEST_ID_PATTERN, $this->guestClientIdFrom($broadcaster->auth($request)));
+        self::assertNull($received);
+    }
+
+    public function testUserWithNullBroadcastIdentifierIsTreatedAsGuest()
+    {
+        $broadcaster = $this->broadcaster;
+        $user = $this->mockUser(null);
+
+        $builtIn = $this->guestClientIdFrom($broadcaster->auth($this->getMockRequestWithSession('public:test', null, $user, $this->newSession())));
+        self::assertMatchesRegularExpression(self::GUEST_ID_PATTERN, $builtIn);
+
+        $calls = 0;
+        AblyBroadcaster::resolveGuestClientIdUsing(function () use (&$calls) {
+            $calls++;
+
+            return 'tenant-guest-2';
+        });
+
+        $resolved = $this->guestClientIdFrom($broadcaster->auth($this->getMockRequestWithSession('public:test', null, $user, $this->newSession())));
+        self::assertSame('tenant-guest-2', $resolved);
+        self::assertSame(1, $calls);
+    }
+
+    public function testUserWithNullBroadcastIdentifierKeepsTheSessionGuestId()
+    {
+        $broadcaster = $this->guestBroadcaster();
+        $user = $this->mockUser(null);
+        $session = $this->newSession();
+
+        $first = $this->guestClientIdFrom($broadcaster->auth($this->getMockRequestWithSession('public:test', null, $user, $session)));
+        $second = $this->guestClientIdFrom($broadcaster->auth($this->getMockRequestWithSession('public:other', null, $user, $session)));
+
+        self::assertMatchesRegularExpression(self::GUEST_ID_PATTERN, $first);
+        self::assertSame($first, $second);
+        self::assertSame($first, $session->get('ably_guest_client_id'));
     }
 
     public function testGuestClientIdResolverMayReturnZeroString()
     {
-        $broadcaster = $this->guestBroadcaster();
+        $broadcaster = $this->broadcaster;
         AblyBroadcaster::resolveGuestClientIdUsing(function () {
             return '0';
         });
@@ -803,9 +865,9 @@ class AblyBroadcasterTest extends TestCase
 
     public function testGuestClientIdResolverMustNotReturnEmptyOrWildcard()
     {
-        $broadcaster = $this->guestBroadcaster();
+        $broadcaster = $this->broadcaster;
 
-        foreach (['', '*', null] as $resolved) {
+        foreach (['', '*', null, false, [], ['guest:1'], new \stdClass()] as $resolved) {
             AblyBroadcaster::resolveGuestClientIdUsing(function () use ($resolved) {
                 return $resolved;
             });
@@ -815,6 +877,42 @@ class AblyBroadcasterTest extends TestCase
             } catch (\UnexpectedValueException $e) {
                 self::assertStringContainsString('resolveGuestClientIdUsing', $e->getMessage());
             }
+        }
+    }
+
+    public function testGuestClientIdResolverIsCalledOnStatelessRoute()
+    {
+        $calls = 0;
+        AblyBroadcaster::resolveGuestClientIdUsing(function () use (&$calls) {
+            $calls++;
+
+            return 'api-guest-7';
+        });
+
+        // no session: the resolver still decides the id, and the built-in token reuse is not used
+        $first = $this->broadcaster->auth($this->getMockRequestWithSession('public:test', null, null, null));
+        $second = $this->broadcaster->auth($this->getMockRequestWithSession('public:test', $first['token'], null, null));
+
+        self::assertSame('api-guest-7', $this->guestClientIdFrom($first));
+        self::assertSame('api-guest-7', $this->guestClientIdFrom($second));
+        self::assertSame(2, $calls);
+    }
+
+    public function testGuestClientIdResolverIsNeverCalledForAuthenticatedUser()
+    {
+        AblyBroadcaster::resolveGuestClientIdUsing(function () {
+            self::fail('the guest resolver must not be called for a signed-in user');
+        });
+        $this->broadcaster->channel('test', function () {
+            return true;
+        });
+        $now = time();
+        $token = $this->signToken(['public:*' => ['subscribe'], 'private:test' => ['*']], '42', $now - 1000, $now + 1000);
+
+        // public channel, private channel and a connection token renewal (no channel name)
+        foreach (['public:test', 'private:test', null] as $channel) {
+            $response = $this->broadcaster->auth($this->getMockRequestWithSession($channel, $token, $this->mockUser(42), $this->newSession()));
+            self::assertSame('42', $this->guestClientIdFrom($response));
         }
     }
 
@@ -854,7 +952,7 @@ class AblyBroadcasterTest extends TestCase
     public function testGuestIdPrefixIsConfigurable()
     {
         foreach (['visitor-' => '/^visitor-[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{22}$/', '' => '/^[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{22}$/'] as $prefix => $pattern) {
-            $broadcaster = m::mock(AblyBroadcaster::class, [$this->ably, ['mau_account' => true, 'guest_id_prefix' => $prefix]])->makePartial();
+            $broadcaster = m::mock(AblyBroadcaster::class, [$this->ably, ['guest_id_prefix' => $prefix]])->makePartial();
 
             $firstResponse = $broadcaster->auth($this->getMockRequestWithSession('public:test', null, null, null));
             $first = $this->guestClientIdFrom($firstResponse);
@@ -868,7 +966,7 @@ class AblyBroadcasterTest extends TestCase
 
     public function testGuestIdIssuedUnderAnotherPrefixIsNotReused()
     {
-        $visit = m::mock(AblyBroadcaster::class, [$this->ably, ['mau_account' => true, 'guest_id_prefix' => 'visit:']])->makePartial();
+        $visit = m::mock(AblyBroadcaster::class, [$this->ably, ['guest_id_prefix' => 'visit:']])->makePartial();
         $visitResponse = $visit->auth($this->getMockRequestWithSession('public:test', null, null, null));
         $visitId = $this->guestClientIdFrom($visitResponse);
         self::assertStringStartsWith('visit:', $visitId);
@@ -887,7 +985,7 @@ class AblyBroadcasterTest extends TestCase
         $oldId = $this->guestClientIdFrom($guest->auth($this->getMockRequestWithSession('public:test', null, null, $session)));
         self::assertStringStartsWith('guest:', $oldId);
 
-        $visit = m::mock(AblyBroadcaster::class, [$this->ably, ['mau_account' => true, 'guest_id_prefix' => 'visit:']])->makePartial();
+        $visit = m::mock(AblyBroadcaster::class, [$this->ably, ['guest_id_prefix' => 'visit:']])->makePartial();
         $newId = $this->guestClientIdFrom($visit->auth($this->getMockRequestWithSession('public:test', null, null, $session)));
 
         self::assertStringStartsWith('visit:', $newId);
@@ -948,16 +1046,16 @@ class AblyBroadcasterTest extends TestCase
         self::assertSame($id, $clientId);
     }
 
-    public function testGuestIdPrefixIsNotUsedWhenMauAccountIsOff()
+    public function testGuestIdPrefixAppliesWithoutAnyOtherGuestConfig()
     {
         $broadcaster = m::mock(AblyBroadcaster::class, [$this->ably, ['guest_id_prefix' => 'visitor-']])->makePartial();
 
         $response = $broadcaster->auth($this->getMockRequestWithoutUserForChannel('public:test', null));
 
-        self::assertNull($this->guestClientIdFrom($response));
+        self::assertMatchesRegularExpression('/^visitor-[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{22}$/', $this->guestClientIdFrom($response));
     }
 
-    public function testGuestStillGetsAccessDeniedOnGuardedChannelsWhenGuestClientIdIsOn()
+    public function testGuestStillGetsAccessDeniedOnGuardedChannels()
     {
         $broadcaster = $this->guestBroadcaster();
         $broadcaster->channel('test', function () {
@@ -975,11 +1073,13 @@ class AblyBroadcasterTest extends TestCase
     }
 
     /**
+     * A fresh broadcaster with the default config (guest ids are always on).
+     *
      * @return \Ably\LaravelBroadcaster\AblyBroadcaster
      */
     protected function guestBroadcaster()
     {
-        return m::mock(AblyBroadcaster::class, [$this->ably, ['mau_account' => true]])->makePartial();
+        return m::mock(AblyBroadcaster::class, [$this->ably, []])->makePartial();
     }
 
     protected function newSession()
@@ -1069,6 +1169,7 @@ class AblyBroadcasterTest extends TestCase
 
         $request->shouldReceive('user')
                 ->andReturn($user);
+        $request->shouldReceive('hasSession')->andReturn(false);
 
         return $request;
     }
@@ -1086,6 +1187,7 @@ class AblyBroadcasterTest extends TestCase
 
         $request->shouldReceive('user')
                 ->andReturn(null);
+        $request->shouldReceive('hasSession')->andReturn(false);
 
         return $request;
     }
