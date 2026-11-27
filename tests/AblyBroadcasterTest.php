@@ -212,7 +212,7 @@ class AblyBroadcasterTest extends TestCase
         self::assertGreaterThanOrEqual($now, $payload['iat']);
     }
 
-    public function testShouldResetClaimsWhenIdentityGoesFromUserToGuest()
+    public function testShouldResetClaimsWhenIdentityGoesFromUserToNoClientId()
     {
         $now = time();
         $token = $this->signToken(['public:*' => ['subscribe'], 'private:secret' => ['*']], 'user123', $now - 1000, $now + 1000);
