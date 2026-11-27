@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-version: [8.1, 8.2, 8.3, 8.4, 8.5]
+        php-version: [8.1, 8.2, 8.3, 8.4, 8.5, 8.6]
         laravel-version: [8.*, 9.*, 10.*, 11.*, 12.*, 13.*]
         include:
           - laravel-version: 8.*
@@ -51,11 +51,15 @@ jobs:
             php-version: 8.1
           - laravel-version: 11.*
             php-version: 8.5
+          - laravel-version: 11.*
+            php-version: 8.6
           # Laravel 10 max PHP 8.3
           - laravel-version: 10.*
             php-version: 8.4
           - laravel-version: 10.*
             php-version: 8.5
+          - laravel-version: 10.*
+            php-version: 8.6
           # Laravel 9 max PHP 8.2
           - laravel-version: 9.*
             php-version: 8.3
@@ -63,6 +67,8 @@ jobs:
             php-version: 8.4
           - laravel-version: 9.*
             php-version: 8.5
+          - laravel-version: 9.*
+            php-version: 8.6
           # Laravel 8 max PHP 8.1
           - laravel-version: 8.*
             php-version: 8.2
@@ -72,6 +78,8 @@ jobs:
             php-version: 8.4
           - laravel-version: 8.*
             php-version: 8.5
+          - laravel-version: 8.*
+            php-version: 8.6
 
     name: P${{ matrix.php-version }} - L${{ matrix.laravel-version }}
 
