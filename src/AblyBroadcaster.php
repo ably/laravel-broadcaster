@@ -357,7 +357,7 @@ class AblyBroadcaster extends Broadcaster
     {
         $socketId = Arr::pull($payload, 'socket');
         try {
-            $socketIdObject = Utils::decodeSocketId($socketId);
+            $socketIdObject = $this->isUnconnectedSocketId($socketId) ? null : Utils::decodeSocketId($socketId);
             foreach ($this->formatChannels($channels) as $channel) {
                 $this->ably->channels->get($channel)->publish(
                     $this->buildAblyMessage($event, $payload, $socketIdObject)
@@ -368,6 +368,24 @@ class AblyBroadcaster extends Broadcaster
                 sprintf('Ably error: %s', $e->getMessage())
             );
         }
+    }
+
+    /**
+     * Whether the socket id is the one @ably/laravel-echo 1.0.6 - 1.1.1 sends before its connection is up: valid
+     * base64url JSON with a `clientId` but no `connectionKey`. There is nothing to exclude yet, so it is treated like a
+     * missing X-Socket-ID header (the event goes to everyone). Malformed socket ids still throw.
+     *
+     * @param  mixed  $socketId
+     * @return bool
+     */
+    private function isUnconnectedSocketId($socketId)
+    {
+        if (! is_string($socketId) || $socketId === '') {
+            return false;
+        }
+        $decoded = json_decode(Utils::base64urlDecode($socketId));
+
+        return is_object($decoded) && property_exists($decoded, 'clientId') && ! isset($decoded->connectionKey);
     }
 
     /**

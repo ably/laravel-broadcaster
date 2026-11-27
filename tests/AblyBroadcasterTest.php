@@ -1125,6 +1125,33 @@ class AblyBroadcasterTest extends TestCase
         }
     }
 
+    public function testSocketIdWithoutConnectionKeyMeansNoExclusion()
+    {
+        $ably = (new AblyFactory())->make([
+            'key' => 'abcd:efgh',
+            'httpClass' => 'Ably\LaravelBroadcaster\Tests\HttpMock',
+        ]);
+        $broadcaster = m::mock(AblyBroadcasterExposed::class, [$ably, []])->makePartial();
+
+        // {"clientId":null} and {"clientId":"user-1"}: sent by Echo before its connection is up
+        foreach (['eyJjbGllbnRJZCI6bnVsbH0', 'eyJjbGllbnRJZCI6InVzZXItMSJ9'] as $socketId) {
+            $broadcaster->broadcast(['channel1'], 'testEvent', ['foo' => 'bar', 'socket' => $socketId]);
+        }
+        self::assertCount(2, $broadcaster->payloads);
+        self::assertSame([null, null], $broadcaster->socketIdObjects);
+
+        // anything else without a connectionKey is still malformed
+        foreach (['not a socket id', 'aGVsbG8', Utils::base64urlEncode('{}'), Utils::base64urlEncode('[1]'), Utils::base64urlEncode('{"connectionKey":"k"}')] as $socketId) {
+            try {
+                $broadcaster->broadcast(['channel1'], 'testEvent', ['foo' => 'bar', 'socket' => $socketId]);
+                self::fail('expected BroadcastException for socket id '.$socketId);
+            } catch (\Illuminate\Broadcasting\BroadcastException $e) {
+                self::assertStringStartsWith('Ably error: ', $e->getMessage());
+            }
+        }
+        self::assertCount(2, $broadcaster->payloads);
+    }
+
     public function testBuildMessageBasedOnSocketIdObject()
     {
         $broadcaster = m::mock(AblyBroadcasterExposed::class, [$this->ably, []])->makePartial();
@@ -1153,9 +1180,11 @@ class AblyBroadcasterTest extends TestCase
 class AblyBroadcasterExposed extends AblyBroadcaster
 {
     public $payloads = [];
+    public $socketIdObjects = [];
     public function buildAblyMessage($event, $payload = [], $socketIdObject = null)
     {
         $this->payloads[] = $payload;
+        $this->socketIdObjects[] = $socketIdObject;
         return parent::buildAblyMessage($event, $payload, $socketIdObject);
     }
 }
