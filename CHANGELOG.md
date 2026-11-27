@@ -1,5 +1,26 @@
 # Changelog
 
+## [v2.0.0](https://github.com/ably/laravel-broadcaster/tree/v2.0.0)
+
+[Full Changelog](https://github.com/ably/laravel-broadcaster/compare/v1.1.1...v2.0.0) <!-- TODO(G2): rebase onto main once the v1.1.1 entry is there; keep the compare from v1.1.1 -->
+
+**Every guest gets a client id, with no flag. Requires `@ably/laravel-echo` v2.**
+
+2.0 makes guest client ids the default for every app, with no option to turn them off. On Ably accounts billed by monthly active users (MAU), guests now connect without any configuration. 2.0 is released and tested together with `@ably/laravel-echo` v2, and only that pairing is supported. Upgrade both in the same release. See [Upgrading to 2.0](UPDATING.md#upgrading-to-20).
+
+### Breaking changes
+
+- **Requires `@ably/laravel-echo` v2.** Mixed versions are not supported. Composer cannot enforce an npm version, so check your `package.json`.
+- **Guests always get a client id.** It has the form `<prefix><random>.<tag>`, is stable per session and is fresh after the logout of a user with a broadcast identifier. A signed-in user whose broadcast identifier is `null` gets a guest id too. Code that relied on a `null` guest client id must be checked, for example `broadcast(...)->toOthers()` messages from guests now carry the guest's client id.
+- **`mau_account` / `ABLY_MAU_ACCOUNT` is removed.** A leftover value in `config/broadcasting.php` is ignored: there is no error and no warning.
+
+### Changes
+
+- `guest_id_prefix` / `ABLY_GUEST_ID_PREFIX` (default `guest:`) now always applies.
+- `AblyBroadcaster::resolveGuestClientIdUsing()` lets an app supply its own guest client id. It is called for every guest auth request, never for a signed-in user with a broadcast identifier, and its id replaces the built-in one (no prefix, no tag). It must be stable across calls and namespaced so it cannot equal a real user id. The hook was added in 1.1.0 (only active when guest client ids were turned on) but was not listed in its changelog. See [Guest client ids](UPDATING.md#guest-client-ids).
+- Includes every fix released in 1.1.1.
+- Docs: UPDATING has the 2.0 upgrade steps, a Guest client ids section (the id format, the prefix and your own resolver), and how this package differs from Laravel's built-in `ably` driver.
+
 ## [v1.1.0](https://github.com/ably/laravel-broadcaster/tree/v1.1.0)
 
 [Full Changelog](https://github.com/ably/laravel-broadcaster/compare/v1.0.8...v1.1.0)
