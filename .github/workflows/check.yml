@@ -46,6 +46,9 @@ jobs:
           # Laravel 12 requires PHP >= 8.2
           - laravel-version: 12.*
             php-version: 8.1
+          # Laravel 12 is not PHP 8.6-ready (deprecations in the framework itself)
+          - laravel-version: 12.*
+            php-version: 8.6
           # Laravel 11 requires PHP >= 8.2, max PHP 8.4
           - laravel-version: 11.*
             php-version: 8.1
