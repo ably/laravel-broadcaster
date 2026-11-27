@@ -32,22 +32,13 @@ class AblyBroadcaster extends Broadcaster
     private $tokenExpiry = 28800;
 
     /**
-     * Config `mau_account` (ABLY_MAU_ACCOUNT). When true, unauthenticated clients get a random guest clientId and
-     * logout switches to a fresh one. Some Ably accounts reject a device connection without
-     * a clientId (Ably error 40161). Other accounts may enable it too.
-     *
-     * @var bool
-     */
-    private $shouldGenerateRandomGuestClientId = false;
-
-    /**
      * Default cosmetic prefix of guest clientIds (config `guest_id_prefix`, ABLY_GUEST_ID_PREFIX). It is not reserved:
      * the broadcaster recognises its own guest ids by their HMAC tag, so a user id with the same prefix is unaffected.
      */
     const GUEST_CLIENT_ID_PREFIX = 'guest:';
 
     /**
-     * Prefix of guest clientIds, used only when `mau_account` is true.
+     * Prefix of the built-in guest clientIds. Not used when a resolver is registered with resolveGuestClientIdUsing().
      *
      * @var string
      */
@@ -116,8 +107,8 @@ class AblyBroadcaster extends Broadcaster
         if (array_key_exists('token_expiry', $config)) {
             $this->tokenExpiry = $config['token_expiry'];
         }
-        // The package ships no config file: apps add these keys to the `ably` connection in config/broadcasting.php
-        $this->shouldGenerateRandomGuestClientId = (bool) ($config['mau_account'] ?? false);
+        // The package ships no config file: apps add these keys to the `ably` connection in config/broadcasting.php.
+        // Unauthenticated clients always get a guest clientId; there is no option to turn this off.
         if (isset($config['guest_id_prefix']) && is_string($config['guest_id_prefix'])) {
             $this->guestClientIdPrefix = $config['guest_id_prefix'];
         }
@@ -179,7 +170,7 @@ class AblyBroadcaster extends Broadcaster
             $userId = method_exists($user, 'getAuthIdentifierForBroadcasting')
                 ? $user->getAuthIdentifierForBroadcasting()
                 : $user->getAuthIdentifier();
-            if ($this->shouldGenerateRandomGuestClientId && $request->hasSession()) {
+            if ($request->hasSession()) {
                 // A signed-in user ends the guest identity, so the next guest (e.g. after logout) gets a fresh id
                 $request->session()->forget(self::GUEST_CLIENT_ID_SESSION_KEY);
             }
@@ -199,7 +190,7 @@ class AblyBroadcaster extends Broadcaster
             }
         }
 
-        if ($userId === null && $this->shouldGenerateRandomGuestClientId) {
+        if ($userId === null) {
             $userId = $this->resolveGuestClientId($request, $token);
         }
 
@@ -227,8 +218,11 @@ class AblyBroadcaster extends Broadcaster
     }
 
     /**
-     * Registers a callback that provides the clientId of unauthenticated clients, for apps that need their own scheme.
-     * It receives the request and replaces the built-in session based id. Pass null to remove it.
+     * Registers a callback that provides the clientId of unauthenticated clients (guests), for apps that need their own scheme.
+     * It is called for every guest auth request, never for a signed-in user. It receives the request and its return value
+     * replaces the built-in session based id entirely: `guest_id_prefix` and the HMAC tag are not applied. The id must be
+     * non-empty and not `*`, stable across calls for the same visitor (a token renewal re-checks the identity), and
+     * namespaced so it cannot equal a real user id. The resolver also decides the id after a logout. Pass null to remove it.
      * A callable is kept out of config on purpose, as closures cannot be cached by `config:cache`.
      *
      * @param  callable|null  $resolver
@@ -240,7 +234,7 @@ class AblyBroadcaster extends Broadcaster
     }
 
     /**
-     * Returns the clientId for an unauthenticated client, which is stable per session or per token (one visitor keeps one guest id).
+     * Returns the clientId for an unauthenticated client (always issued), which is stable per session or per token (one visitor keeps one guest id).
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  string|null  $token  The token presented by the client, if any

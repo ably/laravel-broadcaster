@@ -658,17 +658,17 @@ class AblyBroadcasterTest extends TestCase
      */
     const GUEST_ID_PATTERN = '/^guest:[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{22}$/';
 
-    public function testGuestClientIdIsOffByDefault()
+    public function testGuestClientIdIsAlwaysOn()
     {
         $response = $this->broadcaster->auth($this->getMockRequestWithoutUserForChannel('public:test', null));
 
         $payload = Utils::parseJwt($response['token'])['payload'];
-        self::assertNull($payload['x-ably-clientId']);
+        self::assertMatchesRegularExpression(self::GUEST_ID_PATTERN, $payload['x-ably-clientId']);
     }
 
-    public function testGuestClientIdOffDoesNotTouchSession()
+    public function testAuthenticatedRequestWithoutSessionDoesNotTouchSession()
     {
-        // The mock request has no hasSession() expectation, so touching the session would fail the test
+        // The mock request has no session() expectation, so touching the session would fail the test
         $request = $this->getMockRequestWithUserForChannel('public:test', null, 'guest:abc');
 
         $response = $this->broadcaster->auth($request);
@@ -948,13 +948,13 @@ class AblyBroadcasterTest extends TestCase
         self::assertSame($id, $clientId);
     }
 
-    public function testGuestIdPrefixIsNotUsedWhenMauAccountIsOff()
+    public function testGuestIdPrefixAppliesWithoutAnyOtherGuestConfig()
     {
         $broadcaster = m::mock(AblyBroadcaster::class, [$this->ably, ['guest_id_prefix' => 'visitor-']])->makePartial();
 
         $response = $broadcaster->auth($this->getMockRequestWithoutUserForChannel('public:test', null));
 
-        self::assertNull($this->guestClientIdFrom($response));
+        self::assertMatchesRegularExpression('/^visitor-[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{22}$/', $this->guestClientIdFrom($response));
     }
 
     public function testGuestStillGetsAccessDeniedOnGuardedChannelsWhenGuestClientIdIsOn()
@@ -1069,6 +1069,7 @@ class AblyBroadcasterTest extends TestCase
 
         $request->shouldReceive('user')
                 ->andReturn($user);
+        $request->shouldReceive('hasSession')->andReturn(false);
 
         return $request;
     }
@@ -1086,6 +1087,7 @@ class AblyBroadcasterTest extends TestCase
 
         $request->shouldReceive('user')
                 ->andReturn(null);
+        $request->shouldReceive('hasSession')->andReturn(false);
 
         return $request;
     }
