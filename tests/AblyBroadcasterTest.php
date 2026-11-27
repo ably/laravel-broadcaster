@@ -826,6 +826,20 @@ class AblyBroadcasterTest extends TestCase
         self::assertSame(1, $calls);
     }
 
+    public function testUserWithNullBroadcastIdentifierKeepsTheSessionGuestId()
+    {
+        $broadcaster = $this->guestBroadcaster();
+        $user = $this->mockUser(null);
+        $session = $this->newSession();
+
+        $first = $this->guestClientIdFrom($broadcaster->auth($this->getMockRequestWithSession('public:test', null, $user, $session)));
+        $second = $this->guestClientIdFrom($broadcaster->auth($this->getMockRequestWithSession('public:other', null, $user, $session)));
+
+        self::assertMatchesRegularExpression(self::GUEST_ID_PATTERN, $first);
+        self::assertSame($first, $second);
+        self::assertSame($first, $session->get('ably_guest_client_id'));
+    }
+
     public function testGuestClientIdResolverMayReturnZeroString()
     {
         $broadcaster = $this->broadcaster;

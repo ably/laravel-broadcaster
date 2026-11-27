@@ -170,8 +170,8 @@ class AblyBroadcaster extends Broadcaster
             $userId = method_exists($user, 'getAuthIdentifierForBroadcasting')
                 ? $user->getAuthIdentifierForBroadcasting()
                 : $user->getAuthIdentifier();
-            if ($request->hasSession()) {
-                // A signed-in user ends the guest identity, so the next guest (e.g. after logout) gets a fresh id
+            if ($userId !== null && $request->hasSession()) {
+                // A user with an identifier ends the guest identity, so the next guest (e.g. after logout) gets a fresh id
                 $request->session()->forget(self::GUEST_CLIENT_ID_SESSION_KEY);
             }
         }
