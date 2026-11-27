@@ -109,17 +109,17 @@ class Utils
         if ($socketId) {
             $socketIdJsonString = self::base64urlDecode($socketId);
             if (!$socketIdJsonString) {
-                throw new AblyException("Base64 decoding failed, ".self::SOCKET_ID_ERROR);
+                throw new AblyException("Base64 decoding failed, ".self::SOCKET_ID_ERROR, 40000, 400);
             }
             $socketIdObject = json_decode($socketIdJsonString);
             if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new AblyException("JSON decoding failed: " . json_last_error_msg() . ", " . self::SOCKET_ID_ERROR);
+                throw new AblyException("JSON decoding failed: " . json_last_error_msg() . ", " . self::SOCKET_ID_ERROR, 40000, 400);
             }
             if (!isset($socketIdObject->connectionKey)) {
-                throw new AblyException("ConnectionKey is not set, ".self::SOCKET_ID_ERROR);
+                throw new AblyException("ConnectionKey is not set, ".self::SOCKET_ID_ERROR, 40000, 400);
             }
             if (!property_exists($socketIdObject, 'clientId')) {
-                throw new AblyException("ClientId is missing, ".self::SOCKET_ID_ERROR);
+                throw new AblyException("ClientId is missing, ".self::SOCKET_ID_ERROR, 40000, 400);
             }
         }
         return $socketIdObject;
