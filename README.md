@@ -50,16 +50,10 @@ ABLY_KEY=ROOT_API_KEY_COPIED_FROM_ABLY_WEB_DASHBOARD
 On an MAU-billed Ably account, also set `mau_account` (see [Configure advanced features](#configure-advanced-features) / [UPDATING.md](UPDATING.md#mau-billed-ably-accounts)).
 
 2. Make sure `config/broadcasting.php` exists with an `ably` connection, and that `routes/channels.php` is loaded.
-- **Laravel 11 and later** (the default skeleton has neither file): publish the config, create `routes/channels.php`, and add `channels: __DIR__.'/../routes/channels.php',` to `->withRouting(...)` in `bootstrap/app.php`.
-    ```shell
-    php artisan config:publish broadcasting
-    ```
+- **Laravel 11 and later** (the default skeleton has neither file): run `php artisan config:publish broadcasting`, create `routes/channels.php`, and add `channels: __DIR__.'/../routes/channels.php',` to `->withRouting(...)` in `bootstrap/app.php`. A minimal `routes/channels.php`:
     ```php
     <?php
-    // routes/channels.php
-
     use Illuminate\Support\Facades\Broadcast;
-
     Broadcast::channel('orders.{id}', fn ($user, $id) => (int) $user->id === (int) $id);
     ```
     If you used `php artisan install:broadcasting`, see [UPDATING.md](UPDATING.md#laravel-built-in-ably-driver) first.
