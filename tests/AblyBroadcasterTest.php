@@ -799,8 +799,31 @@ class AblyBroadcasterTest extends TestCase
         self::assertSame('tenant-guest-1', $this->guestClientIdFrom($broadcaster->auth($request)));
         self::assertSame($request, $received);
 
+        // passing null removes the resolver: the built-in guest id is back and the removed resolver is not called
         AblyBroadcaster::resolveGuestClientIdUsing(null);
-        self::assertStringStartsWith('guest:', $this->guestClientIdFrom($broadcaster->auth($request)));
+        $received = null;
+        self::assertMatchesRegularExpression(self::GUEST_ID_PATTERN, $this->guestClientIdFrom($broadcaster->auth($request)));
+        self::assertNull($received);
+    }
+
+    public function testUserWithNullBroadcastIdentifierIsTreatedAsGuest()
+    {
+        $broadcaster = $this->broadcaster;
+        $user = $this->mockUser(null);
+
+        $builtIn = $this->guestClientIdFrom($broadcaster->auth($this->getMockRequestWithSession('public:test', null, $user, $this->newSession())));
+        self::assertMatchesRegularExpression(self::GUEST_ID_PATTERN, $builtIn);
+
+        $calls = 0;
+        AblyBroadcaster::resolveGuestClientIdUsing(function () use (&$calls) {
+            $calls++;
+
+            return 'tenant-guest-2';
+        });
+
+        $resolved = $this->guestClientIdFrom($broadcaster->auth($this->getMockRequestWithSession('public:test', null, $user, $this->newSession())));
+        self::assertSame('tenant-guest-2', $resolved);
+        self::assertSame(1, $calls);
     }
 
     public function testGuestClientIdResolverMayReturnZeroString()
@@ -830,7 +853,7 @@ class AblyBroadcasterTest extends TestCase
     {
         $broadcaster = $this->broadcaster;
 
-        foreach (['', '*', null] as $resolved) {
+        foreach (['', '*', null, false, [], ['guest:1'], new \stdClass()] as $resolved) {
             AblyBroadcaster::resolveGuestClientIdUsing(function () use ($resolved) {
                 return $resolved;
             });
