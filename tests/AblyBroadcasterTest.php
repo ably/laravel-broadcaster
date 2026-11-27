@@ -818,6 +818,42 @@ class AblyBroadcasterTest extends TestCase
         }
     }
 
+    public function testGuestClientIdResolverIsCalledOnStatelessRoute()
+    {
+        $calls = 0;
+        AblyBroadcaster::resolveGuestClientIdUsing(function () use (&$calls) {
+            $calls++;
+
+            return 'api-guest-7';
+        });
+
+        // no session: the resolver still decides the id, and the built-in token reuse is not used
+        $first = $this->broadcaster->auth($this->getMockRequestWithSession('public:test', null, null, null));
+        $second = $this->broadcaster->auth($this->getMockRequestWithSession('public:test', $first['token'], null, null));
+
+        self::assertSame('api-guest-7', $this->guestClientIdFrom($first));
+        self::assertSame('api-guest-7', $this->guestClientIdFrom($second));
+        self::assertSame(2, $calls);
+    }
+
+    public function testGuestClientIdResolverIsNeverCalledForAuthenticatedUser()
+    {
+        AblyBroadcaster::resolveGuestClientIdUsing(function () {
+            self::fail('the guest resolver must not be called for a signed-in user');
+        });
+        $this->broadcaster->channel('test', function () {
+            return true;
+        });
+        $now = time();
+        $token = $this->signToken(['public:*' => ['subscribe'], 'private:test' => ['*']], '42', $now - 1000, $now + 1000);
+
+        // public channel, private channel and a connection token renewal (no channel name)
+        foreach (['public:test', 'private:test', null] as $channel) {
+            $response = $this->broadcaster->auth($this->getMockRequestWithSession($channel, $token, $this->mockUser(42), $this->newSession()));
+            self::assertSame('42', $this->guestClientIdFrom($response));
+        }
+    }
+
     public function testGuestClientIdIsNeverNullOrWildcard()
     {
         $broadcaster = $this->guestBroadcaster();
