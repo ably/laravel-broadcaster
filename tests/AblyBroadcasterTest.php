@@ -493,7 +493,7 @@ class AblyBroadcasterTest extends TestCase
     public function testRenewalKeepsZeroIdForGuestAndUser()
     {
         $now = time();
-        $broadcaster = $this->guestBroadcaster();
+        $broadcaster = $this->broadcaster;
         AblyBroadcaster::resolveGuestClientIdUsing(function () {
             return '0';
         });
@@ -762,7 +762,7 @@ class AblyBroadcasterTest extends TestCase
 
     public function testGuestClientIdResolverOverridesTheBuiltInId()
     {
-        $broadcaster = $this->guestBroadcaster();
+        $broadcaster = $this->broadcaster;
         $request = $this->getMockRequestWithSession('public:test', null, null, $this->newSession());
         $received = null;
         AblyBroadcaster::resolveGuestClientIdUsing(function ($req) use (&$received) {
@@ -780,7 +780,7 @@ class AblyBroadcasterTest extends TestCase
 
     public function testGuestClientIdResolverMayReturnZeroString()
     {
-        $broadcaster = $this->guestBroadcaster();
+        $broadcaster = $this->broadcaster;
         AblyBroadcaster::resolveGuestClientIdUsing(function () {
             return '0';
         });
@@ -803,7 +803,7 @@ class AblyBroadcasterTest extends TestCase
 
     public function testGuestClientIdResolverMustNotReturnEmptyOrWildcard()
     {
-        $broadcaster = $this->guestBroadcaster();
+        $broadcaster = $this->broadcaster;
 
         foreach (['', '*', null] as $resolved) {
             AblyBroadcaster::resolveGuestClientIdUsing(function () use ($resolved) {
@@ -854,7 +854,7 @@ class AblyBroadcasterTest extends TestCase
     public function testGuestIdPrefixIsConfigurable()
     {
         foreach (['visitor-' => '/^visitor-[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{22}$/', '' => '/^[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{22}$/'] as $prefix => $pattern) {
-            $broadcaster = m::mock(AblyBroadcaster::class, [$this->ably, ['mau_account' => true, 'guest_id_prefix' => $prefix]])->makePartial();
+            $broadcaster = m::mock(AblyBroadcaster::class, [$this->ably, ['guest_id_prefix' => $prefix]])->makePartial();
 
             $firstResponse = $broadcaster->auth($this->getMockRequestWithSession('public:test', null, null, null));
             $first = $this->guestClientIdFrom($firstResponse);
@@ -868,7 +868,7 @@ class AblyBroadcasterTest extends TestCase
 
     public function testGuestIdIssuedUnderAnotherPrefixIsNotReused()
     {
-        $visit = m::mock(AblyBroadcaster::class, [$this->ably, ['mau_account' => true, 'guest_id_prefix' => 'visit:']])->makePartial();
+        $visit = m::mock(AblyBroadcaster::class, [$this->ably, ['guest_id_prefix' => 'visit:']])->makePartial();
         $visitResponse = $visit->auth($this->getMockRequestWithSession('public:test', null, null, null));
         $visitId = $this->guestClientIdFrom($visitResponse);
         self::assertStringStartsWith('visit:', $visitId);
@@ -887,7 +887,7 @@ class AblyBroadcasterTest extends TestCase
         $oldId = $this->guestClientIdFrom($guest->auth($this->getMockRequestWithSession('public:test', null, null, $session)));
         self::assertStringStartsWith('guest:', $oldId);
 
-        $visit = m::mock(AblyBroadcaster::class, [$this->ably, ['mau_account' => true, 'guest_id_prefix' => 'visit:']])->makePartial();
+        $visit = m::mock(AblyBroadcaster::class, [$this->ably, ['guest_id_prefix' => 'visit:']])->makePartial();
         $newId = $this->guestClientIdFrom($visit->auth($this->getMockRequestWithSession('public:test', null, null, $session)));
 
         self::assertStringStartsWith('visit:', $newId);
@@ -957,7 +957,7 @@ class AblyBroadcasterTest extends TestCase
         self::assertMatchesRegularExpression('/^visitor-[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{22}$/', $this->guestClientIdFrom($response));
     }
 
-    public function testGuestStillGetsAccessDeniedOnGuardedChannelsWhenGuestClientIdIsOn()
+    public function testGuestStillGetsAccessDeniedOnGuardedChannels()
     {
         $broadcaster = $this->guestBroadcaster();
         $broadcaster->channel('test', function () {
@@ -975,11 +975,13 @@ class AblyBroadcasterTest extends TestCase
     }
 
     /**
+     * A fresh broadcaster with the default config (guest ids are always on).
+     *
      * @return \Ably\LaravelBroadcaster\AblyBroadcaster
      */
     protected function guestBroadcaster()
     {
-        return m::mock(AblyBroadcaster::class, [$this->ably, ['mau_account' => true]])->makePartial();
+        return m::mock(AblyBroadcaster::class, [$this->ably, []])->makePartial();
     }
 
     protected function newSession()
