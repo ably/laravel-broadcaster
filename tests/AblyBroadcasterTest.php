@@ -516,6 +516,31 @@ class AblyBroadcasterTest extends TestCase
         }
     }
 
+    public function testLegacyTokenWithoutClientIdRenewsAsTheNewIdentity()
+    {
+        // A token issued by 1.x to a guest has no clientId. After the upgrade its renewal switches to the new identity:
+        // a guest id or the user id, a fresh expiry, and none of the presented private or presence claims.
+        $this->broadcaster->channel('keep', function () {
+            return true;
+        });
+        $now = time();
+        $legacy = $this->signToken(['public:*' => ['subscribe'], 'private:keep' => ['*']], null, $now - 1000, $now + 1000);
+
+        foreach ([null, $this->mockUser(42)] as $user) {
+            foreach ([$this->newSession(), null] as $session) {
+                $response = $this->broadcaster->auth($this->getMockRequestWithSession(null, $legacy, $user, $session));
+                $payload = Utils::parseJwt($response['token'])['payload'];
+                if ($user) {
+                    self::assertSame('42', $payload['x-ably-clientId']);
+                } else {
+                    self::assertMatchesRegularExpression(self::GUEST_ID_PATTERN, $payload['x-ably-clientId']);
+                }
+                self::assertEquals($this->publicOnlyCapability(), $payload['x-ably-capability']);
+                self::assertGreaterThan($now + 1000, $payload['exp']);
+            }
+        }
+    }
+
     public function testSignedTokenWithNonStringCapabilityIsHandled()
     {
         $now = time();
