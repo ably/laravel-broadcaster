@@ -17,7 +17,7 @@ This implements ably broadcaster as a independent service provider library for [
 - Update channel permissions for each user.
 - Update token expiry.
 - Disable public channels.
-- Fully compatible with pusher/pusher-compatible broadcasters, see [migrating section](#migrating-from-pusherpusher-compatible-broadcasters).
+- Works with Laravel's broadcasting API and your existing channel authorization callbacks. The client must be [`@ably/laravel-echo`](https://github.com/ably-forks/laravel-echo), not a Pusher-protocol client. See the [migrating section](#migrating-from-pusherpusher-compatible-broadcasters).
 
 ## Bug Fixes
 - Fixes [broadcasting events to others](https://faqs.ably.com/why-isnt-the-broadcast-only-to-others-functionality-working-in-laravel-with-the-ably-broadcaster).
@@ -49,14 +49,22 @@ ABLY_KEY=ROOT_API_KEY_COPIED_FROM_ABLY_WEB_DASHBOARD
 
 On an MAU-billed Ably account, also set `mau_account` (see [Configure advanced features](#configure-advanced-features) / [UPDATING.md](UPDATING.md#mau-billed-ably-accounts)).
 
-2. If using laravel 10 or older, uncomment/set [**BroadcastServiceProvider** in config/app.php](https://github.com/ably-labs/laravel-broadcast-app/blob/3ae9b9b97e05c1394bf128ae4dd905e245c7db71/config/app.php#L174)
+2. Make sure `config/broadcasting.php` exists with an `ably` connection, and that `routes/channels.php` is loaded.
+- **Laravel 11 and later** (the default skeleton has neither file): run `php artisan config:publish broadcasting`, create `routes/channels.php`, and add `channels: __DIR__.'/../routes/channels.php',` to `->withRouting(...)` in `bootstrap/app.php`. A minimal `routes/channels.php`:
+    ```php
+    <?php
+    use Illuminate\Support\Facades\Broadcast;
+    Broadcast::channel('orders.{id}', fn ($user, $id) => (int) $user->id === (int) $id);
+    ```
+    If you used `php artisan install:broadcasting`, see [UPDATING.md](UPDATING.md#laravel-built-in-ably-driver) first.
+- **Laravel 10 and older:** uncomment/set **BroadcastServiceProvider** in `config/app.php`.
 <pre>
         App\Providers\AuthServiceProvider::class,
         <b>App\Providers\BroadcastServiceProvider::class,</b>
         App\Providers\EventServiceProvider::class,
 </pre>
 
-4. If running Laravel 8 or older, edit `config/broadcasting.php`, add `ably` section to the `connections` array
+3. If your `config/broadcasting.php` has no `ably` connection (for example, an app created from an older skeleton), add it to the `connections` array
 ```php
         'ably' => [
             'driver' => 'ably',
@@ -66,6 +74,9 @@ On an MAU-billed Ably account, also set `mau_account` (see [Configure advanced f
 - For more information, refer to the [server-side broadcasting configuration documentation](https://laravel.com/docs/broadcasting#configuration).
 
 Finally, you are ready to install and configure [Ably Laravel Echo](https://github.com/ably-forks/echo/), which will receive the broadcast events on the client-side.
+
+<a id="built-in-ably-driver"></a>
+Installing this package replaces Laravel's built-in `ably` driver for every `driver => 'ably'` connection; the client must be `@ably/laravel-echo`. See [UPDATING.md](UPDATING.md#laravel-built-in-ably-driver) for what changes and how to check.
 
 ## Using Laravel Echo on client-side
 
@@ -185,7 +196,7 @@ npm run dev
 
 <a name="migrate-pusher-to-ably"></a>
 ## Migrating from pusher/pusher-compatible broadcasters
-The Ably Laravel broadcaster is designed to be compatible with all Laravel broadcasting providers, such as [Pusher](https://laravel.com/docs/9.x/broadcasting#pusher-channels), [Ably with the Pusher adapter](https://laravel.com/docs/9.x/broadcasting#ably), and all [Pusher compatible open source broadcasters](https://laravel.com/docs/9.x/broadcasting#open-source-alternatives). Follow the below steps to migrate from other broadcasters.
+The Ably Laravel broadcaster works with Laravel's broadcasting API, so you keep your channel authorization callbacks when you migrate from other broadcasters, such as [Pusher](https://laravel.com/docs/9.x/broadcasting#pusher-channels), [Ably with the Pusher adapter](https://laravel.com/docs/9.x/broadcasting#ably), and all [Pusher compatible open source broadcasters](https://laravel.com/docs/9.x/broadcasting#open-source-alternatives). Switch the client to `@ably/laravel-echo` (see the [note on the built-in `ably` driver](#built-in-ably-driver)), then follow the steps below.
 
 **1. Leaving a channel**
 
