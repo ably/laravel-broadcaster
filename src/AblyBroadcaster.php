@@ -219,7 +219,7 @@ class AblyBroadcaster extends Broadcaster
 
     /**
      * Registers a callback that receives the request and returns the clientId of an unauthenticated client (app's own scheme).
-     * It is called for every guest auth request (a signed-in user whose broadcast identifier is null counts as a guest).
+     * It is called for every guest auth request (a signed-in user whose broadcast identifier is null also gets a guest clientId).
      * It must return a non-empty clientId other than `*`, stable per visitor and namespaced so it cannot equal a user id.
      * Pass null to remove it. A callable is kept out of config on purpose, as closures cannot be cached by `config:cache`.
      *
