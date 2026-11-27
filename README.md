@@ -17,7 +17,7 @@ This implements ably broadcaster as a independent service provider library for [
 - Update channel permissions for each user.
 - Update token expiry.
 - Disable public channels.
-- Works with Laravel's broadcasting API and your existing channel authorization callbacks. The client must be [`@ably/laravel-echo`](https://github.com/ably-forks/echo), not a Pusher-protocol client. See the [migrating section](#migrating-from-pusherpusher-compatible-broadcasters).
+- Works with Laravel's broadcasting API and your existing channel authorization callbacks. The client must be [`@ably/laravel-echo`](https://github.com/ably-forks/laravel-echo), not a Pusher-protocol client. See the [migrating section](#migrating-from-pusherpusher-compatible-broadcasters).
 
 ## Bug Fixes
 - Fixes [broadcasting events to others](https://faqs.ably.com/why-isnt-the-broadcast-only-to-others-functionality-working-in-laravel-with-the-ably-broadcaster).
@@ -50,13 +50,19 @@ ABLY_KEY=ROOT_API_KEY_COPIED_FROM_ABLY_WEB_DASHBOARD
 On an MAU-billed Ably account, also set `mau_account` (see [Configure advanced features](#configure-advanced-features) / [UPDATING.md](UPDATING.md#mau-billed-ably-accounts)).
 
 2. Make sure `config/broadcasting.php` exists with an `ably` connection, and that `routes/channels.php` is loaded.
-- **Laravel 11 and later** (the default skeleton has neither file):
-```shell
-php artisan config:publish broadcasting
-```
-Create `routes/channels.php`, for example starting with `<?php use Illuminate\Support\Facades\Broadcast;`. Then add `channels: __DIR__.'/../routes/channels.php',` to `->withRouting(...)` in `bootstrap/app.php`.
+- **Laravel 11 and later** (the default skeleton has neither file): publish the config, create `routes/channels.php`, and add `channels: __DIR__.'/../routes/channels.php',` to `->withRouting(...)` in `bootstrap/app.php`.
+    ```shell
+    php artisan config:publish broadcasting
+    ```
+    ```php
+    <?php
+    // routes/channels.php
 
-`php artisan install:broadcasting` does all of this too, but it also writes a Pusher or Reverb client to `resources/js/echo.js` and installs `laravel-echo` and `pusher-js`. If you ran it, replace `resources/js/echo.js` with the Ably Echo setup [below](#using-laravel-echo-on-client-side), and uninstall `laravel-echo` and `pusher-js` if nothing else uses them. Do **not** use `install:broadcasting --ably`: it sets up Laravel's built-in Pusher-protocol driver and its client, see [This package replaces Laravel's built-in `ably` driver](#built-in-ably-driver).
+    use Illuminate\Support\Facades\Broadcast;
+
+    Broadcast::channel('orders.{id}', fn ($user, $id) => (int) $user->id === (int) $id);
+    ```
+    `php artisan install:broadcasting` does all of this too, but it also writes a Pusher or Reverb client to `resources/js/echo.js` and installs `laravel-echo` and `pusher-js`. If you ran it, replace `resources/js/echo.js` with the Ably Echo setup [below](#using-laravel-echo-on-client-side), and uninstall `laravel-echo` and `pusher-js` if nothing else uses them. Do **not** use `install:broadcasting --ably` (Laravel 12 and later): it sets up Laravel's built-in Pusher-protocol driver and its client, see [This package replaces Laravel's built-in `ably` driver](#built-in-ably-driver).
 - **Laravel 10 and older:** uncomment/set **BroadcastServiceProvider** in `config/app.php`.
 <pre>
         App\Providers\AuthServiceProvider::class,
@@ -197,8 +203,8 @@ npm run dev
 Laravel also ships its own `ably` broadcast driver. It speaks the Pusher protocol and is used with the stock `laravel-echo` and `pusher-js` (or set up by `php artisan install:broadcasting --ably`). Once this package is installed, package discovery registers `Ably\LaravelBroadcaster\LaravelAblyBroadcasterServiceProvider`, and every connection in `config/broadcasting.php` with `'driver' => 'ably'` uses this package's broadcaster instead.
 
 - **Which connections change.** Only connections with `'driver' => 'ably'`. Connections with any other driver are untouched, including the default connection when it is not an `ably` one.
-- **Move the client in the same deploy.** If you already use Laravel's built-in `ably` driver, switch the client to [`@ably/laravel-echo`](https://github.com/ably-forks/echo) (see [Using Laravel Echo on client-side](#using-laravel-echo-on-client-side)) in the same deploy as this package. A Pusher-protocol client (`laravel-echo` with `pusher-js`) cannot authorize private and presence channels against this broadcaster, and `->toOthers()` fails with a `BroadcastException` because a Pusher socket id is not an `@ably/laravel-echo` socket id, see [UPDATING.md](UPDATING.md#behaviour-changes).
-- **If the provider is not registered**, Laravel uses its own built-in `ably` driver instead, which does not work with `@ably/laravel-echo`. This happens when the package is listed in `extra.laravel.dont-discover` in your `composer.json`, when `bootstrap/cache/packages.php` is stale (for example after `composer install --no-scripts`), or when another service provider resolves the broadcaster before this package has booted. On Laravel 13.41 and later it happens silently. On earlier versions it fails with `Class "Ably\AblyRest" not found`, unless `ably/ably-php` 1.x is installed, in which case it is silent too.
+- **Move the client in the same deploy.** If you already use Laravel's built-in `ably` driver, switch the client to [`@ably/laravel-echo`](https://github.com/ably-forks/laravel-echo) (see [Using Laravel Echo on client-side](#using-laravel-echo-on-client-side)) in the same deploy as this package. A Pusher-protocol client (`laravel-echo` with `pusher-js`) cannot authorize private and presence channels against this broadcaster, and `->toOthers()` fails with a `BroadcastException` because a Pusher socket id is not an `@ably/laravel-echo` socket id, see [UPDATING.md](UPDATING.md#behaviour-changes).
+- **If the provider is not registered**, Laravel uses its own built-in `ably` driver instead, which does not work with `@ably/laravel-echo`. This happens when the package is listed in `extra.laravel.dont-discover` in your `composer.json`, when `bootstrap/cache/packages.php` is stale (for example after `composer install --no-scripts`), or when another service provider resolves the broadcaster before this package has booted. On Laravel 13.41 and later it happens silently. On earlier versions it fails with an error that mentions `Class "Ably\AblyRest" not found`, unless `ably/ably-php` 1.x is installed, in which case it is silent too.
 
 To check which driver is used, run `php artisan tinker` and then:
 
@@ -211,7 +217,7 @@ If it returns anything else, make sure the package is not in `dont-discover`, th
 
 <a name="migrate-pusher-to-ably"></a>
 ## Migrating from pusher/pusher-compatible broadcasters
-The Ably Laravel broadcaster is designed to be compatible with all Laravel broadcasting providers, such as [Pusher](https://laravel.com/docs/9.x/broadcasting#pusher-channels), [Ably with the Pusher adapter](https://laravel.com/docs/9.x/broadcasting#ably), and all [Pusher compatible open source broadcasters](https://laravel.com/docs/9.x/broadcasting#open-source-alternatives). Follow the below steps to migrate from other broadcasters.
+The Ably Laravel broadcaster works with Laravel's broadcasting API, so you keep your channel authorization callbacks when you migrate from other broadcasters, such as [Pusher](https://laravel.com/docs/9.x/broadcasting#pusher-channels), [Ably with the Pusher adapter](https://laravel.com/docs/9.x/broadcasting#ably), and all [Pusher compatible open source broadcasters](https://laravel.com/docs/9.x/broadcasting#open-source-alternatives). Switch the client to `@ably/laravel-echo` (see [This package replaces Laravel's built-in `ably` driver](#built-in-ably-driver)), then follow the steps below.
 
 **1. Leaving a channel**
 
