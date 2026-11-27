@@ -49,14 +49,22 @@ ABLY_KEY=ROOT_API_KEY_COPIED_FROM_ABLY_WEB_DASHBOARD
 
 On an MAU-billed Ably account, also set `mau_account` (see [Configure advanced features](#configure-advanced-features) / [UPDATING.md](UPDATING.md#mau-billed-ably-accounts)).
 
-2. If using laravel 10 or older, uncomment/set [**BroadcastServiceProvider** in config/app.php](https://github.com/ably-labs/laravel-broadcast-app/blob/3ae9b9b97e05c1394bf128ae4dd905e245c7db71/config/app.php#L174)
+2. Make sure `config/broadcasting.php` exists with an `ably` connection, and that `routes/channels.php` is loaded.
+- **Laravel 11 and later** (the default skeleton has neither file):
+```shell
+php artisan config:publish broadcasting
+```
+Create `routes/channels.php`, for example starting with `<?php use Illuminate\Support\Facades\Broadcast;`. Then add `channels: __DIR__.'/../routes/channels.php',` to `->withRouting(...)` in `bootstrap/app.php`.
+
+`php artisan install:broadcasting` does all of this too, but it also writes a Pusher or Reverb client to `resources/js/echo.js` and installs `laravel-echo` and `pusher-js`. If you ran it, replace `resources/js/echo.js` with the Ably Echo setup [below](#using-laravel-echo-on-client-side), and uninstall `laravel-echo` and `pusher-js` if nothing else uses them. Do **not** use `install:broadcasting --ably`: it sets up Laravel's built-in Pusher-protocol driver and its client, see [This package replaces Laravel's built-in `ably` driver](#built-in-ably-driver).
+- **Laravel 10 and older:** uncomment/set **BroadcastServiceProvider** in `config/app.php`.
 <pre>
         App\Providers\AuthServiceProvider::class,
         <b>App\Providers\BroadcastServiceProvider::class,</b>
         App\Providers\EventServiceProvider::class,
 </pre>
 
-4. If running Laravel 8 or older, edit `config/broadcasting.php`, add `ably` section to the `connections` array
+3. If your `config/broadcasting.php` has no `ably` connection (for example, an app created from an older skeleton), add it to the `connections` array
 ```php
         'ably' => [
             'driver' => 'ably',
