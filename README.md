@@ -11,6 +11,8 @@ _[Ably](https://ably.com) is the platform that powers synchronized digital exper
 
 This implements ably broadcaster as a independent service provider library for [Laravel](https://laravel.com/) using the [Ably Pub/Sub PHP SDK](https://github.com/ably/ably-pubsub-php) (`ably/pubsub-server`). This library works with the [ably-js](https://github.com/ably/ably-js) based [ably-laravel-echo](https://github.com/ably-forks/echo) client framework with enhanced features. This project is the successor to the [pusher-client based ably broadcaster](https://laravel.com/docs/9.x/broadcasting#client-ably).
 
+> **Version 2 requires `@ably/laravel-echo` v2.** Upgrade `ably/laravel-broadcaster` and `@ably/laravel-echo` together: only broadcaster 2.x with Echo 2.x is supported, and mixed versions (broadcaster 2.x with Echo 1.x, or broadcaster 1.x with Echo 2.x) are not. Composer cannot check an npm package, so this is on you. Upgrading? See [UPDATING.md](UPDATING.md#upgrading-to-20).
+
 ## Features
 - Native ably-js support.
 - Low latency for client-events.
@@ -36,7 +38,7 @@ You can install the package via composer
 composer require ably/laravel-broadcaster
 ```
 
-> **Upgrading from 1.0.x?** See [UPDATING.md](UPDATING.md#10x--11).
+> **Upgrading from 1.x?** See [UPDATING.md](UPDATING.md#upgrading-to-20).
 
 ## Setup
 
@@ -46,8 +48,6 @@ BROADCAST_CONNECTION=ably # For laravel <= 10, set `BROADCAST_DRIVER` instead
 ABLY_KEY=ROOT_API_KEY_COPIED_FROM_ABLY_WEB_DASHBOARD
 ```
 > **Warning** - Do not expose **ABLY_KEY** to client code.
-
-On an MAU-billed Ably account, also set `mau_account` (see [Configure advanced features](#configure-advanced-features) / [UPDATING.md](UPDATING.md#mau-billed-ably-accounts)).
 
 2. Make sure `config/broadcasting.php` exists with an `ably` connection, and that `routes/channels.php` is loaded.
 - **Laravel 11 and later** (the default skeleton has neither file): run `php artisan config:publish broadcasting`, create `routes/channels.php`, and add `channels: __DIR__.'/../routes/channels.php',` to `->withRouting(...)` in `bootstrap/app.php`. A minimal `routes/channels.php`:
@@ -82,9 +82,9 @@ Installing this package replaces Laravel's built-in `ably` driver for every `dri
 
 [Ably Laravel Echo](https://github.com/ably-forks/echo/) is a JavaScript library that makes it painless to subscribe to channels and listen for events broadcast by your server-side broadcasting driver. Ably is maintaining a fork of the official laravel-echo module which uses the official Ably device SDK, [`@ably/pubsub-device`](https://github.com/ably/ably-js), and brings it as its own dependency when you install it:
 ```
-npm install @ably/laravel-echo@^1.1
+npm install @ably/laravel-echo@^2
 ```
-`@ably/laravel-echo` >= 1.1 is required on MAU-billed Ably accounts and when `ABLY_MAU_ACCOUNT=true`; otherwise the 1.0.x setup keeps working. See [UPDATING.md](UPDATING.md#mau-billed-ably-accounts).
+This version of the broadcaster needs `@ably/laravel-echo` 2.x; Echo 1.x is not supported with it. See [UPDATING.md](UPDATING.md#upgrading-to-20).
 
 Once Echo is installed, you are ready to create a fresh Echo instance in your applications JavaScript. A great place to do this is at the bottom of the `resources/js/bootstrap.js` file that is included with the Laravel framework. By default, an example Echo configuration is already included in this file; however, the default configuration in the `bootstrap.js` file is intended for Pusher. You may copy the configuration below to transition your configuration to Ably.
 
@@ -175,23 +175,8 @@ npm run dev
         ],
 ```
 
-**5. Issue guest clientIds to unauthenticated users. Default: false**
-- Required on Ably accounts with monthly-active-user (MAU) pricing, which reject connections without a clientId. Other accounts may enable it too, for example to give guests a stable per-session identity. Enabling it needs `@ably/laravel-echo` >= 1.1 (in-page login and logout). See [UPDATING.md](UPDATING.md#mau-billed-ably-accounts) before enabling it.
-- Set `ABLY_MAU_ACCOUNT` as **true** in **.env** file. Optionally set `ABLY_GUEST_ID_PREFIX`.
-```dotenv
-    ABLY_MAU_ACCOUNT=true
-```
-- Update ably section under `config/broadcasting.php` with
-```php
-        'ably' => [
-            'driver' => 'ably',
-            'key' => env('ABLY_KEY'),
-            // Give guests a random clientId instead of null (required on MAU-billed accounts). Default: false
-            'mau_account' => env('ABLY_MAU_ACCOUNT', false),
-            // Cosmetic prefix of guest clientIds, used only when mau_account is true. Default: 'guest:'
-            'guest_id_prefix' => env('ABLY_GUEST_ID_PREFIX', 'guest:'),
-        ],
-```
+**5. Guest clientIds (always on)**
+- Every guest (a visitor who is not logged in) gets a clientId, with nothing to configure, also on Ably accounts billed by monthly active users (MAU). To change the prefix or use your own id scheme, see [UPDATING.md](UPDATING.md#guest-client-ids).
 
 
 <a name="migrate-pusher-to-ably"></a>
