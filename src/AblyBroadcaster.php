@@ -218,13 +218,10 @@ class AblyBroadcaster extends Broadcaster
     }
 
     /**
-     * Registers a callback that provides the clientId of unauthenticated clients (guests), for apps that need their own scheme.
-     * It is called for every guest auth request, never for a signed-in user, unless that user's broadcast identifier is
-     * null, which is treated as a guest. It receives the request and its return value
-     * replaces the built-in session based id entirely: `guest_id_prefix` and the HMAC tag are not applied. The id must be
-     * non-empty and not `*`, stable across calls for the same visitor (a token renewal re-checks the identity), and
-     * namespaced so it cannot equal a real user id. The resolver also decides the id after a logout. Pass null to remove it.
-     * A callable is kept out of config on purpose, as closures cannot be cached by `config:cache`.
+     * Registers a callback that receives the request and returns the clientId of an unauthenticated client (app's own scheme).
+     * It is called for every guest auth request (a signed-in user whose broadcast identifier is null counts as a guest).
+     * It must return a non-empty clientId other than `*`, stable per visitor and namespaced so it cannot equal a user id.
+     * Pass null to remove it. A callable is kept out of config on purpose, as closures cannot be cached by `config:cache`.
      *
      * @param  callable|null  $resolver
      * @return void
@@ -235,7 +232,7 @@ class AblyBroadcaster extends Broadcaster
     }
 
     /**
-     * Returns the clientId for an unauthenticated client (always issued), which is stable per session or per token (one visitor keeps one guest id).
+     * Returns the clientId of an unauthenticated client: the app resolver's if registered, else one stable per session or token.
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  string|null  $token  The token presented by the client, if any
