@@ -599,6 +599,33 @@ class AblyBroadcasterTest extends TestCase
         self::assertEquals(['userid' => 'user1234', 'info' => 'Hello there'], $response['info']);
     }
 
+    public function testNonStringChannelNameIsDenied()
+    {
+        foreach ([['private:test'], ['public:test'], [], 42] as $channelName) {
+            foreach ([$this->getMockRequestWithUserForChannel($channelName, null), $this->getMockRequestWithoutUserForChannel($channelName, null)] as $request) {
+                try {
+                    $this->broadcaster->auth($request);
+                    self::fail('expected AccessDeniedHttpException');
+                } catch (AccessDeniedHttpException $e) {
+                    self::assertStringStartsWith('Invalid channel name', $e->getMessage());
+                }
+            }
+        }
+    }
+
+    public function testNonStringSocketIdIsIgnoredInErrorMessages()
+    {
+        $request = $this->getMockRequestWithoutUserForChannel('private:test', null);
+        $request->socket_id = ['abcd.1234'];
+
+        try {
+            $this->broadcaster->auth($request);
+            self::fail('expected AccessDeniedHttpException');
+        } catch (AccessDeniedHttpException $e) {
+            self::assertSame('User not authenticated, channel-name:private:test ably-connection-id:', $e->getMessage());
+        }
+    }
+
     public function testShouldFormatChannels()
     {
         $result = $this->broadcaster->formatChannels(['private-hello']);

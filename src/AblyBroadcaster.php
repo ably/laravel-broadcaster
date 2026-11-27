@@ -162,11 +162,14 @@ class AblyBroadcaster extends Broadcaster
     public function auth($request)
     {
         $channelName = $request->channel_name;
+        $connectionId = is_string($request->socket_id) ? $request->socket_id : null;
+        if ($channelName !== null && ! is_string($channelName)) { // e.g. `channel_name[]=x`
+            throw new AccessDeniedHttpException('Invalid channel name, ably-connection-id:'.$connectionId);
+        }
         $token = $request->token;
         if (! is_string($token)) {
             $token = null; // e.g. `token[]=x`: treated as no token
         }
-        $connectionId = $request->socket_id;
         $userId = null;
         $guardedChannelCapability = ['*']; // guardedChannel is either private or presence channel
 
