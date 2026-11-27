@@ -238,7 +238,7 @@ class AblyBroadcaster extends Broadcaster
      * @param  string|null  $token  The token presented by the client, if any
      * @return string
      *
-     * @throws \UnexpectedValueException if the app's resolver returns an empty or wildcard clientId
+     * @throws \UnexpectedValueException if the app's resolver returns an empty, wildcard or non-scalar clientId
      */
     protected function resolveGuestClientId($request, $token)
     {
