@@ -497,7 +497,7 @@ class AblyBroadcaster extends Broadcaster
      */
     public function isPrivateChannel($channel)
     {
-        return Str::startsWith($channel, 'private:');
+        return is_string($channel) && Str::startsWith($channel, 'private:');
     }
 
     /**
@@ -508,7 +508,7 @@ class AblyBroadcaster extends Broadcaster
      */
     public function isPresenceChannel($channel)
     {
-        return Str::startsWith($channel, 'presence:');
+        return is_string($channel) && Str::startsWith($channel, 'presence:');
     }
 
     /**

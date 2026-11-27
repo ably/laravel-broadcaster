@@ -626,6 +626,21 @@ class AblyBroadcasterTest extends TestCase
         }
     }
 
+    public function testChannelPrefixChecksAreNullSafe()
+    {
+        // A token renewal has no channel name. Throw on any PHP notice or deprecation, e.g. str_starts_with(null) on Laravel <= 10
+        set_error_handler(function ($severity, $message) {
+            throw new \ErrorException($message, 0, $severity);
+        });
+        try {
+            self::assertFalse($this->broadcaster->isPrivateChannel(null));
+            self::assertFalse($this->broadcaster->isPresenceChannel(null));
+            self::assertFalse($this->broadcaster->isGuardedChannel(null));
+        } finally {
+            restore_error_handler();
+        }
+    }
+
     public function testShouldFormatChannels()
     {
         $result = $this->broadcaster->formatChannels(['private-hello']);
