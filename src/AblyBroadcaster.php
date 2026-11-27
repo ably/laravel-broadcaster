@@ -162,11 +162,14 @@ class AblyBroadcaster extends Broadcaster
     public function auth($request)
     {
         $channelName = $request->channel_name;
+        $connectionId = is_string($request->socket_id) ? $request->socket_id : null;
+        if ($channelName !== null && ! is_string($channelName)) { // e.g. `channel_name[]=x`
+            throw new AccessDeniedHttpException('Invalid channel name, ably-connection-id:'.$connectionId);
+        }
         $token = $request->token;
         if (! is_string($token)) {
             $token = null; // e.g. `token[]=x`: treated as no token
         }
-        $connectionId = $request->socket_id;
         $userId = null;
         $guardedChannelCapability = ['*']; // guardedChannel is either private or presence channel
 
@@ -354,7 +357,7 @@ class AblyBroadcaster extends Broadcaster
     {
         $socketId = Arr::pull($payload, 'socket');
         try {
-            $socketIdObject = Utils::decodeSocketId($socketId);
+            $socketIdObject = $this->isUnconnectedSocketId($socketId) ? null : Utils::decodeSocketId($socketId);
             foreach ($this->formatChannels($channels) as $channel) {
                 $this->ably->channels->get($channel)->publish(
                     $this->buildAblyMessage($event, $payload, $socketIdObject)
@@ -365,6 +368,24 @@ class AblyBroadcaster extends Broadcaster
                 sprintf('Ably error: %s', $e->getMessage())
             );
         }
+    }
+
+    /**
+     * Whether the socket id is the one @ably/laravel-echo 1.0.6 - 1.1.1 sends before its connection is up: valid
+     * base64url JSON with a `clientId` but no `connectionKey`. There is nothing to exclude yet, so it is treated like a
+     * missing X-Socket-ID header (the event goes to everyone). Malformed socket ids still throw.
+     *
+     * @param  mixed  $socketId
+     * @return bool
+     */
+    private function isUnconnectedSocketId($socketId)
+    {
+        if (! is_string($socketId) || $socketId === '') {
+            return false;
+        }
+        $decoded = json_decode(Utils::base64urlDecode($socketId));
+
+        return is_object($decoded) && property_exists($decoded, 'clientId') && ! isset($decoded->connectionKey);
     }
 
     /**
@@ -494,7 +515,7 @@ class AblyBroadcaster extends Broadcaster
      */
     public function isPrivateChannel($channel)
     {
-        return Str::startsWith($channel, 'private:');
+        return is_string($channel) && Str::startsWith($channel, 'private:');
     }
 
     /**
@@ -505,7 +526,7 @@ class AblyBroadcaster extends Broadcaster
      */
     public function isPresenceChannel($channel)
     {
-        return Str::startsWith($channel, 'presence:');
+        return is_string($channel) && Str::startsWith($channel, 'presence:');
     }
 
     /**

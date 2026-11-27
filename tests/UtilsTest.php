@@ -53,6 +53,7 @@ class UtilsTest extends TestCase
     public function testExceptionOnDecodingInvalidSocketId()
     {
         self::expectException(AblyException::class);
+        self::expectExceptionCode(40000);
         self::expectExceptionMessage("Base64 decoding failed, ".Utils::SOCKET_ID_ERROR);
         Utils::decodeSocketId("invalid_socket_id");
     }
@@ -63,6 +64,7 @@ class UtilsTest extends TestCase
         $socketIdObject->connectionKey = 'key';
 
         self::expectException(AblyException::class);
+        self::expectExceptionCode(40000);
         self::expectExceptionMessage("ClientId is missing, ".Utils::SOCKET_ID_ERROR);
         Utils::decodeSocketId(Utils::base64urlEncode(json_encode($socketIdObject)));
     }
@@ -73,6 +75,7 @@ class UtilsTest extends TestCase
         $socketIdObject->clientId = 'id';
 
         self::expectException(AblyException::class);
+        self::expectExceptionCode(40000);
         self::expectExceptionMessage("ConnectionKey is not set, ".Utils::SOCKET_ID_ERROR);
         Utils::decodeSocketId(Utils::base64urlEncode(json_encode($socketIdObject)));
     }
